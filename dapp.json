@@ -7,5 +7,9 @@
   "governance": {
     "preset": "you_or_the_group"
   },
-  "tests": []
+  "tests": [
+    { "name": "Log form renders", "path": "/", "expectSelector": "#log-form button.btn-primary" },
+    { "name": "Empty history", "path": "/", "expectText": "No sets yet" },
+    { "name": "Populated demo", "path": "/?demo=1", "expectText": "Best set each week", "id": "demo", "visual": true, "impact": ["public/**"] }
+  ]
 }

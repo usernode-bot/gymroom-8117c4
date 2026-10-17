@@ -53,7 +53,7 @@
 
 .link {display:flex;align-items:center;gap:4px;min-height:44px;font-size:14px;font-weight:600;color:rgb(var(--accent));background:none;border:0;padding:0}
 
-.chips {display:flex;gap:8px;overflow:hidden;margin-bottom:12px}
+.chips {display:flex;gap:8px;overflow-x:auto;margin-bottom:12px}
 
 .chip {min-height:44px;padding:10px 14px;border-radius:22px;background:rgb(var(--raised));font-size:14px;line-height:24px;white-space:nowrap;display:flex;align-items:center}
 
@@ -94,3 +94,36 @@
 .day {padding:8px 16px;font-size:14px;line-height:20px;color:rgb(var(--muted));font-weight:500;background:rgb(var(--raised))}
 
 .ico {width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:rgb(var(--muted));background:none;border:0;flex:none}
+
+/* Behaviour additions the script needs: the select that fills the drawn
+   exercise field, the demo-note line, the add/remove rows, the in-row
+   delete confirmation and the save-error line. Same tokens, nothing new. */
+.field select {
+  appearance:none;
+  -webkit-appearance:none;
+  background:none;
+  border:0;
+  font:inherit;
+  font-weight:600;
+  color:rgb(var(--fg));
+  width:100%;
+  height:100%;
+  padding:0;
+  outline:none;
+  text-align:left;
+}
+.field > svg {flex:none;pointer-events:none}
+.demo-note {padding:8px 16px;text-align:center;font-size:14px;line-height:20px;color:rgb(var(--fg));background:rgb(var(--raised))}
+.add-row {display:flex;gap:8px;margin-top:4px}
+.add-row .field {flex:1;min-width:0}
+.add-btn,.remove-yes,.remove-no {min-width:72px;font-size:14px}
+.remove-yes,.del-yes {color:rgb(var(--danger))}
+.add-error,.save-error {margin-top:8px;font-size:14px;line-height:20px;color:rgb(var(--danger))}
+.remove-q {margin-top:12px}
+.del-q {flex:none}
+.del-yes,.del-no {min-height:44px;padding:0 12px;background:none;border:0;font-size:14px;font-weight:600;flex:none}
+.del-no {color:rgb(var(--fg))}
+.chip:focus-visible,.link:focus-visible,.ico:focus-visible,.del-yes:focus-visible,.del-no:focus-visible,
+.add-btn:focus-visible,.remove-yes:focus-visible,.remove-no:focus-visible,.day:focus-visible {
+  outline:2px solid rgb(var(--focus));outline-offset:2px;
+}
