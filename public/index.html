@@ -150,8 +150,8 @@
       <div class="section-label" style="margin-top:16px">Best set each week</div>
       <div class="list"><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div></div>
     </div>
-    <div id="progress-empty" class="state-empty" hidden>
-      <p>No sets yet. Log your first set above.</p>
+    <div id="progress-empty" hidden>
+      <div class="card"><div class="state-empty"><p>No sets yet. Log your first set above.</p></div></div>
     </div>
     <div id="progress-body" hidden>
     <div class="chips" id="chips"></div>
@@ -165,14 +165,11 @@
     </div>
     </div>
 
-    <div class="sec" id="history-sec"><div class="section-label">History</div>
+    <div class="sec" id="history-sec"><div class="section-label" id="history-label">History</div>
     <div class="list" id="history-loading">
       <div class="list-row"><div class="grow"><div class="skeleton h-4 w-36"></div><div class="skeleton h-3 w-20 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div></div><span class="skeleton h-6 w-6"></span></div>
       <div class="list-row"><div class="grow"><div class="skeleton h-4 w-28"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-16"></div></div><span class="skeleton h-6 w-6"></span></div>
       <div class="list-row"><div class="grow"><div class="skeleton h-4 w-32"></div><div class="skeleton h-3 w-20 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div></div><span class="skeleton h-6 w-6"></span></div>
-    </div>
-    <div id="history-empty" class="state-empty" hidden>
-      <p>No sets yet. Log your first set above.</p>
     </div>
     <div class="list" id="history" hidden></div>
     </div>
@@ -197,7 +194,20 @@
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    var exercises = { starter: [], own: [] };
+    // The built-in starter list, the same slugs server.js serves, so the
+    // Exercise select is filled while loading and when loading fails.
+    var STARTER = [
+      { ref: 's:squat', name: 'Barbell back squat' },
+      { ref: 's:bench-press', name: 'Bench press' },
+      { ref: 's:deadlift', name: 'Deadlift' },
+      { ref: 's:overhead-press', name: 'Overhead press' },
+      { ref: 's:barbell-row', name: 'Barbell row' },
+      { ref: 's:pull-up', name: 'Pull-up' },
+      { ref: 's:push-up', name: 'Push-up' },
+      { ref: 's:plank', name: 'Plank' },
+    ];
+
+    var exercises = { starter: STARTER, own: [] };
     var sets = [];
     var selectedRef = null;   // the log form's exercise
     var progressRef = null;   // the Progress section's exercise
@@ -294,7 +304,8 @@
       hide($('load-error'));
       show($('progress-sec')); show($('history-sec'));
       show($('progress-loading')); hide($('progress-body')); hide($('progress-empty'));
-      show($('history-loading')); hide($('history')); hide($('history-empty'));
+      show($('history-label'));
+      show($('history-loading')); hide($('history'));
     }
     function showError() {
       hide($('progress-sec')); hide($('history-sec'));
@@ -400,7 +411,12 @@
       var best = bestOf(setsFor(progressRef));
       var w = best.weight_kg != null ? parseFloat(best.weight_kg) : null;
       $('best-line').textContent = fmtSet(best);
-      $('best-sub').textContent = 'Best set ever, logged ' + dayLabel(new Date(best.logged_at), nowDate());
+      // Inside a sentence the relative day is lowercase; weekdays and dates
+      // stay as the History groups spell them.
+      var day = dayLabel(new Date(best.logged_at), nowDate());
+      if (day === 'Today') day = 'today';
+      if (day === 'Yesterday') day = 'yesterday';
+      $('best-sub').textContent = 'Best set ever, logged ' + day;
       var isNew = sameLocalDay(best.logged_at, nowDate());
       if (isNew) show($('best-badge')); else hide($('best-badge'));
       // The loaded barbell: the best weight as real plates on a 20 kg bar.
@@ -504,11 +520,13 @@
       var host = $('history');
       host.innerHTML = '';
       if (!sets.length) {
+        // The message is shown once, in the Progress card; the History
+        // section stays empty until the first set is logged.
         hide(host);
-        show($('history-empty'));
+        hide($('history-label'));
         return;
       }
-      hide($('history-empty'));
+      show($('history-label'));
       show(host);
 
       // Group by local day, newest day first; sets arrive newest first.
@@ -769,6 +787,7 @@
     $('retry-btn').addEventListener('click', loadAll);
 
     if (DEMO) show($('demo-note'));
+    renderExerciseSelect();
     loadAll();
   })();
   </script>

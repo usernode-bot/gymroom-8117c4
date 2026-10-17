@@ -53,7 +53,10 @@
 
 .link {display:flex;align-items:center;gap:4px;min-height:44px;font-size:14px;font-weight:600;color:rgb(var(--accent));background:none;border:0;padding:0}
 
-.chips {display:flex;gap:8px;overflow-x:auto;margin-bottom:12px}
+/* The row scrolls sideways and lets its last chip run past the right
+   gutter: it reaches the screen edge (negative margins) while the 16 px
+   start inset is padding, which scrolls away with the chips. */
+.chips {display:flex;gap:8px;overflow-x:auto;margin:0 -16px 12px;padding-left:16px}
 
 .chip {min-height:44px;padding:10px 14px;border-radius:22px;background:rgb(var(--raised));font-size:14px;line-height:24px;white-space:nowrap;display:flex;align-items:center}
 
@@ -66,6 +69,8 @@
 .shaft {height:6px;width:40px;background:rgb(var(--bar))}
 
 .collar {width:6px;height:14px;background:rgb(var(--bar));border-radius:2px;margin-right:2px}
+
+.plates {display:flex;align-items:center;flex:none}
 
 .p {border-radius:3px;margin-right:2px;background:rgb(var(--plate))}
 
