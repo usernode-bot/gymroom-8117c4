@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <script>
   // usernode-dev-console@1
   (function () {
@@ -26,7 +26,7 @@
             if (seen.has(val)) return '[Circular]';
             seen.add(val);
           }
-          if (typeof val === 'function') return '[Function ' + (val.name || 'anonymous') + ']';
+          if (typeof val === 'function') return '[Function ' + (v.name || 'anonymous') + ']';
           if (val instanceof Error) return val.stack || (val.name + ': ' + val.message);
           return val;
         });
@@ -64,7 +64,7 @@
   })();
   </script>
   <title>Gymroom</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%237c3aed'/><circle cx='50' cy='50' r='18' fill='white'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect x='1' y='12' width='4' height='8' rx='1' fill='%23c2410c'/><rect x='5' y='8' width='4' height='16' rx='1' fill='%23211b16'/><rect x='9' y='13' width='14' height='6' rx='1' fill='%23a8a098'/><rect x='23' y='8' width='4' height='16' rx='1' fill='%23211b16'/><rect x='27' y='12' width='4' height='8' rx='1' fill='%23c2410c'/></svg>">
   <!-- Tailwind, PRECOMPILED for this app (was cdn.tailwindcss.com's
        in-browser engine plus an inline tailwind.config here). The config
        moved to tailwind.config.js in the repo root; npm run build compiles
@@ -78,6 +78,7 @@
        classes, swap this link for the platform-hosted engine instead:
        <script src="/usernode-tailwind/v1/tailwind.js"></script> -->
   <link rel="stylesheet" href="/tailwind.css">
+  <link rel="stylesheet" href="/screens.css">
   <!-- The platform bridge, centrally hosted and loaded by RELATIVE path (the
        handler in server.js serves it under a plain "node server.js"; the
        platform's edge answers it everywhere else). Never vendor it and never
@@ -108,28 +109,687 @@
   </script>
 </head>
 <body class="min-h-screen bg-ground text-fg">
-  <!-- Built from the design kit in styles/tailwind-input.css: colour tokens
-       that are right in both looks, and components for buttons, fields,
-       lists, cards and data states. The real app keeps the kit; CLAUDE.md's
-       "## Design" says how. -->
-  <!-- (Named in prose on purpose: Tailwind compiles any class-name word in
-       these files, comments included, and the starter should ship only the
-       components its screen uses.) -->
-  <main class="mx-auto flex max-w-md flex-col gap-8 px-4 py-10">
+  <!-- usernode-spec-screens@1: the screens the spec drew, carried over by the platform as this
+       first version's starting point. Their styles are in public/screens.css.
+       Change them where behaviour needs it; do not redraw them. -->
+  <div data-spec-screen="1">
+    <div class="gr">
+    <div class="demo-note" id="demo-note" data-usernode-demo-note hidden>Staging demo: sample workouts</div>
+    <div class="top"><div class="small">Gymroom</div><div class="title">Log a set</div></div>
 
-    <!-- usernode-starter-notice@1 — starter-template messaging. When building
-         the user's real app, replace this whole screen and delete this block,
-         both sentinel comments included. -->
-    <section class="card flex flex-col items-start gap-3">
-      <div class="flex h-20 w-20 items-center justify-center rounded-2xl border border-line bg-ground text-title">🏋️</div>
-      <span class="rounded-full bg-raised px-3 py-1 text-small font-medium text-muted">Starter template</span>
-      <h1 class="text-title">Gymroom</h1>
-      <p class="text-body text-muted">Welcome to your new app! Everything on this screen is placeholder content that came with it.</p>
-      <p class="text-body text-muted">To change this app, ask Homeroom bot: tap the <strong class="font-semibold text-fg">Homeroom icon</strong>, then <strong class="font-semibold text-fg">Suggest an improvement</strong>. Describe what you'd like in plain English, and it will be turned into your real app.</p>
-    </section>
-    <!-- /usernode-starter-notice@1 -->
+    <div class="sec"><div class="card" id="log-form">
+    <div class="row" style="margin-top:-12px"><div class="small">Exercise</div><button class="link" id="exercise-link" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span id="exercise-link-text">Add your own</span></button></div>
+    <div id="add-exercise-row" hidden>
+      <div class="small" style="margin-top:12px">New exercise name</div>
+      <div class="add-row"><input class="field" id="new-exercise-name" maxlength="60" placeholder="e.g. Leg press"><button class="btn-secondary add-btn" id="add-exercise-btn" type="button">Add</button></div>
+      <p class="add-error" id="add-exercise-error" hidden></p>
+    </div>
+    <div id="remove-exercise-row" hidden>
+      <p class="small remove-q">Remove this exercise and its sets?</p>
+      <div class="add-row"><button class="btn-secondary remove-yes" id="remove-exercise-btn" type="button">Remove</button><button class="btn-secondary remove-no" id="remove-exercise-keep" type="button">Keep</button></div>
+    </div>
+    <div class="field sel" style="margin-top:12px"><select id="exercise-select" aria-label="Exercise"></select><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="three">
+    <div><div class="small"><label for="weight-input">Weight, kg</label></div><input class="field num" id="weight-input" inputmode="decimal" placeholder="e.g. 102.5"></div>
+    <div><div class="small"><label for="reps-input">Reps</label></div><input class="field num" id="reps-input" inputmode="numeric" placeholder="e.g. 5"></div>
+    <div><div class="small"><label for="time-input">Time, m:ss</label></div><input class="field num" id="time-input" inputmode="numeric" placeholder="e.g. 2:10"></div>
+    </div>
+    <button class="btn-primary" id="log-btn" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Log set</button>
+    <p class="save-error" id="save-error" hidden></p>
+    </div></div>
 
-    <p class="text-center text-small text-muted">Built on Homeroom. This template screen disappears once you build your real app.</p>
-  </main>
+    <div class="sec" id="progress-sec"><div class="section-label">Progress</div>
+    <div id="progress-loading">
+      <div class="chips"><span class="chip"><span class="skeleton h-4 w-20 block"></span></span><span class="chip"><span class="skeleton h-4 w-24 block"></span></span><span class="chip"><span class="skeleton h-4 w-16 block"></span></span></div>
+      <div class="card">
+        <div class="skeleton h-6 w-36"></div>
+        <div class="skeleton h-3 w-44 mt-1"></div>
+        <div class="skeleton h-8 w-full mt-4"></div>
+        <div class="skeleton h-3 w-48 mt-2"></div>
+      </div>
+      <div class="section-label" style="margin-top:16px">Best set each week</div>
+      <div class="list"><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div></div>
+    </div>
+    <div id="progress-empty" hidden>
+      <div class="card"><div class="state-empty"><p>No sets yet. Log your first set above.</p></div></div>
+    </div>
+    <div id="progress-body" hidden>
+    <div class="chips" id="chips"></div>
+    <div class="card">
+    <div class="row"><div><div class="num" id="best-line"></div><div class="small" id="best-sub"></div></div><div class="pr" id="best-badge" hidden>New best</div></div>
+    <div class="bar"><div class="end"></div><div class="shaft"></div><div class="collar"></div><span id="plates" class="plates"></span><div class="rest"></div></div>
+    <div class="small" id="bar-note"></div>
+    </div>
+    <div class="section-label" style="margin-top:16px">Best set each week</div>
+    <div class="list" id="weeks"></div>
+    </div>
+    </div>
+
+    <div class="sec" id="history-sec"><div class="section-label" id="history-label">History</div>
+    <div class="list" id="history-loading">
+      <div class="list-row"><div class="grow"><div class="skeleton h-4 w-36"></div><div class="skeleton h-3 w-20 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div></div><span class="skeleton h-6 w-6"></span></div>
+      <div class="list-row"><div class="grow"><div class="skeleton h-4 w-28"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-16"></div></div><span class="skeleton h-6 w-6"></span></div>
+      <div class="list-row"><div class="grow"><div class="skeleton h-4 w-32"></div><div class="skeleton h-3 w-20 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div></div><span class="skeleton h-6 w-6"></span></div>
+    </div>
+    <div class="list" id="history" hidden></div>
+    </div>
+
+    <div class="sec" id="load-error" hidden>
+      <div class="state-error">
+      <p>Couldn't load your workouts. Nothing you logged is lost.</p>
+      <button class="btn-secondary" id="retry-btn" type="button">Retry</button>
+      </div>
+    </div>
+    </div>
+  </div>
+  <!-- /usernode-spec-screens@1 -->
+
+  <script>
+  (function () {
+    'use strict';
+    var params = new URLSearchParams(location.search);
+    var TOKEN = params.get('token') || '';
+    var DEMO = params.get('demo') === '1';
+    var API_QS = DEMO ? '?demo=1' : '';
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    // The built-in starter list, the same slugs server.js serves, so the
+    // Exercise select is filled while loading and when loading fails.
+    var STARTER = [
+      { ref: 's:squat', name: 'Barbell back squat' },
+      { ref: 's:bench-press', name: 'Bench press' },
+      { ref: 's:deadlift', name: 'Deadlift' },
+      { ref: 's:overhead-press', name: 'Overhead press' },
+      { ref: 's:barbell-row', name: 'Barbell row' },
+      { ref: 's:pull-up', name: 'Pull-up' },
+      { ref: 's:push-up', name: 'Push-up' },
+      { ref: 's:plank', name: 'Plank' },
+    ];
+
+    var exercises = { starter: STARTER, own: [] };
+    var sets = [];
+    var selectedRef = null;   // the log form's exercise
+    var progressRef = null;   // the Progress section's exercise
+    var confirmDeleteId = null;
+    var saving = false;
+
+    function $(id) { return document.getElementById(id); }
+    function show(e) { e.hidden = false; }
+    function hide(e) { e.hidden = true; }
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+
+    // "Now" as the platform hands it to the page; weeks, day groups and
+    // "New best" are all worked out from it, in the viewer's local time.
+    function nowDate() {
+      try {
+        if (window.usernode && typeof window.usernode.now === 'function') {
+          var d = window.usernode.now();
+          if (d instanceof Date && !isNaN(d)) return d;
+        }
+      } catch (e) {}
+      return new Date();
+    }
+
+    function api(method, path, body) {
+      var opts = { method: method, headers: { 'Content-Type': 'application/json', 'x-usernode-token': TOKEN } };
+      if (body) opts.body = JSON.stringify(body);
+      return fetch('/api/' + path + API_QS, opts).then(function (res) {
+        return res.text().then(function (text) {
+          var data = {};
+          try { data = text ? JSON.parse(text) : {}; } catch (e) {}
+          return { ok: res.ok, status: res.status, data: data };
+        });
+      });
+    }
+
+    // ── Formatting ────────────────────────────────────────────────────────
+    function fmtWeight(n) { return String(Math.round(parseFloat(n) * 100) / 100); }
+    function fmtTime(sec) {
+      sec = Math.round(sec);
+      var m = Math.floor(sec / 60), r = sec % 60;
+      return m + ':' + (r < 10 ? '0' : '') + r;
+    }
+    function fmtSet(s) {
+      var w = s.weight_kg != null ? parseFloat(s.weight_kg) : null;
+      if (w != null && w > 0) return fmtWeight(w) + ' kg × ' + (s.reps != null ? s.reps : '?');
+      if (s.reps != null) return 'Body × ' + s.reps;
+      if (s.seconds != null) return fmtTime(s.seconds);
+      return '—';
+    }
+    function fmtDate(d) {
+      var out = d.getDate() + ' ' + MONTHS[d.getMonth()];
+      if (d.getFullYear() !== nowDate().getFullYear()) out += ' ' + d.getFullYear();
+      return out;
+    }
+    function weekStart(d) {
+      var x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // weeks start Monday
+      return x;
+    }
+    function sameLocalDay(iso, ref) {
+      var d = new Date(iso);
+      return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
+    }
+
+    // A best set: heaviest weight, more reps winning a tie; without weight,
+    // the most reps; with neither, the longest time.
+    function beats(a, b) {
+      var aw = a.weight_kg != null && parseFloat(a.weight_kg) > 0;
+      var bw = b.weight_kg != null && parseFloat(b.weight_kg) > 0;
+      if (aw && bw && parseFloat(a.weight_kg) !== parseFloat(b.weight_kg)) {
+        return parseFloat(a.weight_kg) > parseFloat(b.weight_kg);
+      }
+      if (aw !== bw) return aw;
+      if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
+      return (a.seconds || 0) > (b.seconds || 0);
+    }
+
+    function setsFor(ref) {
+      return sets.filter(function (s) { return s.exercise_ref === ref; });
+    }
+    function bestOf(list) {
+      var best = null;
+      for (var i = 0; i < list.length; i++) if (!best || beats(list[i], best)) best = list[i];
+      return best;
+    }
+
+    // ── Loading, empty and error states ──────────────────────────────────
+    function showLoading() {
+      hide($('load-error'));
+      show($('progress-sec')); show($('history-sec'));
+      show($('progress-loading')); hide($('progress-body')); hide($('progress-empty'));
+      show($('history-label'));
+      show($('history-loading')); hide($('history'));
+    }
+    function showError() {
+      hide($('progress-sec')); hide($('history-sec'));
+      show($('load-error'));
+    }
+
+    // ── Exercises ────────────────────────────────────────────────────────
+    var ICON_PLUS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+    var ICON_BIN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+    var ICON_BIN_SM = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+
+    function allExercises() { return exercises.starter.concat(exercises.own); }
+    function exerciseName(ref) {
+      var list = allExercises();
+      for (var i = 0; i < list.length; i++) if (list[i].ref === ref) return list[i].name;
+      return 'Exercise';
+    }
+    function isOwn(ref) { return /^c:/.test(ref); }
+
+    function renderExerciseSelect() {
+      if (!selectedRef || !allExercises().some(function (e) { return e.ref === selectedRef; })) {
+        selectedRef = exercises.starter.length ? exercises.starter[0].ref : (exercises.own[0] ? exercises.own[0].ref : null);
+      }
+      var sel = $('exercise-select');
+      sel.innerHTML = '';
+      var g = el('optgroup'); g.label = 'Exercises';
+      exercises.starter.forEach(function (x) {
+        var o = el('option', '', x.name); o.value = x.ref; g.appendChild(o);
+      });
+      if (exercises.own.length) {
+        var g2 = el('optgroup'); g2.label = 'Your exercises';
+        exercises.own.forEach(function (x) {
+          var o = el('option', '', x.name); o.value = x.ref; g2.appendChild(o);
+        });
+        sel.appendChild(g2);
+      }
+      sel.insertBefore(g, sel.firstChild);
+      if (selectedRef) sel.value = selectedRef;
+      updateExerciseLink();
+    }
+
+    function updateExerciseLink() {
+      var own = selectedRef && isOwn(selectedRef);
+      $('exercise-link-text').textContent = own ? 'Remove exercise' : 'Add your own';
+      $('exercise-link').innerHTML = (own ? ICON_BIN : ICON_PLUS) + '<span id="exercise-link-text">' +
+        (own ? 'Remove exercise' : 'Add your own') + '</span>';
+      hide($('remove-exercise-row'));
+      hide($('add-exercise-row'));
+    }
+
+    function prefillFromLast(ref) {
+      var last = null;
+      for (var i = 0; i < sets.length; i++) {
+        if (sets[i].exercise_ref === ref) { last = sets[i]; break; } // sets are newest first
+      }
+      var w = last && last.weight_kg != null ? parseFloat(last.weight_kg) : null;
+      $('weight-input').value = w != null && w > 0 ? fmtWeight(w) : '';
+      $('reps-input').value = last && last.reps != null ? String(last.reps) : '';
+      $('time-input').value = last && last.seconds != null && last.seconds > 0 ? fmtTime(last.seconds) : '';
+    }
+
+    // ── Progress ─────────────────────────────────────────────────────────
+    function loggedRefs() {
+      var last = {};
+      sets.forEach(function (s) {
+        var prev = last[s.exercise_ref];
+        if (!prev || s.logged_at > prev) last[s.exercise_ref] = s.logged_at;
+      });
+      return Object.keys(last).sort(function (a, b) { return last[a] < last[b] ? 1 : last[a] > last[b] ? -1 : 0; });
+    }
+
+    function renderProgress() {
+      var refs = loggedRefs();
+      if (!refs.length) {
+        hide($('progress-body'));
+        show($('progress-empty'));
+        return;
+      }
+      hide($('progress-empty'));
+      if (!progressRef || refs.indexOf(progressRef) === -1) progressRef = refs[0];
+      renderChips(refs);
+      renderCard();
+      renderWeeks();
+      show($('progress-body'));
+    }
+
+    function renderChips(refs) {
+      var host = $('chips');
+      host.innerHTML = '';
+      refs.forEach(function (ref) {
+        var c = el('button', ref === progressRef ? 'chip on' : 'chip', exerciseName(ref));
+        c.type = 'button';
+        c.setAttribute('data-ref', ref);
+        host.appendChild(c);
+      });
+    }
+
+    // Plate widths and heights, from the drawn barbell.
+    var PLATE_SIZES = { '25': [9, 32], '20': [8, 30], '15': [7, 26], '10': [6, 20], '5': [4, 14], '2.5': [3, 10], '1.25': [2, 8] };
+    var PLATE_ORDER = [25, 20, 15, 10, 5, 2.5, 1.25];
+
+    function renderCard() {
+      var best = bestOf(setsFor(progressRef));
+      var w = best.weight_kg != null ? parseFloat(best.weight_kg) : null;
+      $('best-line').textContent = fmtSet(best);
+      // Inside a sentence the relative day is lowercase; weekdays and dates
+      // stay as the History groups spell them.
+      var day = dayLabel(new Date(best.logged_at), nowDate());
+      if (day === 'Today') day = 'today';
+      if (day === 'Yesterday') day = 'yesterday';
+      $('best-sub').textContent = 'Best set ever, logged ' + day;
+      var isNew = sameLocalDay(best.logged_at, nowDate());
+      if (isNew) show($('best-badge')); else hide($('best-badge'));
+      // The loaded barbell: the best weight as real plates on a 20 kg bar.
+      var holder = $('plates');
+      holder.innerHTML = '';
+      var note;
+      if (w == null || w <= 0) {
+        note = 'Bodyweight: the empty bar';
+      } else if (w < 20) {
+        note = 'Under 20 kg: the empty bar';
+      } else {
+        var perSide = (w - 20) / 2, left = perSide, parts = [];
+        PLATE_ORDER.forEach(function (p) {
+          while (left >= p - 1e-9) {
+            left = Math.round((left - p) * 100) / 100;
+            parts.push(p);
+            var d = el('div', p === 25 ? 'p o' : 'p');
+            d.style.width = PLATE_SIZES[String(p)][0] + 'px';
+            d.style.height = PLATE_SIZES[String(p)][1] + 'px';
+            holder.appendChild(d);
+          }
+        });
+        if (parts.length) {
+          note = 'On the bar: ' + parts.join(' + ') + ' kg a side' +
+            (left > 0 ? ' plus ' + fmtWeight(left) + ' kg' : '') + ', 20 kg bar';
+        } else {
+          note = 'On the bar: the bare 20 kg bar';
+        }
+      }
+      $('bar-note').textContent = note;
+    }
+
+    function compareText(best, prevBest) {
+      if (!prevBest) return { cls: 'small', text: 'First week' };
+      var bw = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
+      var pw = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
+      if (bw && pw) {
+        var d = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
+        if (d > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d) + ' kg' };
+        if (d < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d) + ' kg' };
+      }
+      if ((best.reps || 0) !== (prevBest.reps || 0)) {
+        var rd = (best.reps || 0) - (prevBest.reps || 0);
+        return rd > 0
+          ? { cls: 'pr', text: 'Up ' + rd + (rd === 1 ? ' rep' : ' reps') }
+          : { cls: 'small', text: 'Down ' + (-rd) + (rd === -1 ? ' rep' : ' reps') };
+      }
+      if (best.reps == null && prevBest.reps == null && best.seconds != null && prevBest.seconds != null && best.seconds !== prevBest.seconds) {
+        var sd = best.seconds - prevBest.seconds;
+        return sd > 0
+          ? { cls: 'pr', text: 'Up ' + fmtTime(sd) }
+          : { cls: 'small', text: 'Down ' + fmtTime(-sd) };
+      }
+      return { cls: 'small', text: 'Same as before' };
+    }
+
+    function renderWeeks() {
+      var byWeek = {};
+      setsFor(progressRef).forEach(function (s) {
+        var wk = weekStart(new Date(s.logged_at)).getTime();
+        var g = byWeek[wk] || (byWeek[wk] = { best: null, count: 0 });
+        g.count += 1;
+        if (!g.best || beats(s, g.best)) g.best = s;
+      });
+      var wks = Object.keys(byWeek).map(Number).sort(function (a, b) { return b - a; });
+      var host = $('weeks');
+      host.innerHTML = '';
+      var thisWeek = weekStart(nowDate()).getTime();
+      wks.forEach(function (wk, i) {
+        var g = byWeek[wk];
+        var row = el('div', 'list-row wk');
+        var grow = el('div', 'grow');
+        if (wk === thisWeek) {
+          grow.appendChild(el('div', 'b', 'This week'));
+          grow.appendChild(el('div', 'small', 'From ' + fmtDate(new Date(wk))));
+        } else {
+          grow.appendChild(el('div', 'b', 'Week of ' + fmtDate(new Date(wk))));
+          grow.appendChild(el('div', 'small', g.count + (g.count === 1 ? ' set' : ' sets')));
+        }
+        var r = el('div', 'r');
+        r.appendChild(el('div', 'b', fmtSet(g.best)));
+        var cmp = compareText(g.best, i < wks.length - 1 ? byWeek[wks[i + 1]].best : null);
+        r.appendChild(el('div', cmp.cls, cmp.text));
+        row.appendChild(grow);
+        row.appendChild(r);
+        host.appendChild(row);
+      });
+    }
+
+    // ── History ──────────────────────────────────────────────────────────
+    function dayLabel(date, refNow) {
+      var todayMid = new Date(refNow.getFullYear(), refNow.getMonth(), refNow.getDate());
+      var diff = Math.round((todayMid - new Date(date.getFullYear(), date.getMonth(), date.getDate())) / 86400000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      if (diff < 7) return WEEKDAYS[date.getDay()];
+      return fmtDate(date);
+    }
+
+    function renderHistory() {
+      var host = $('history');
+      host.innerHTML = '';
+      if (!sets.length) {
+        // The message is shown once, in the Progress card; the History
+        // section stays empty until the first set is logged.
+        hide(host);
+        hide($('history-label'));
+        return;
+      }
+      show($('history-label'));
+      show(host);
+
+      // Group by local day, newest day first; sets arrive newest first.
+      var groups = [];
+      var cur = null, curKey = null;
+      sets.forEach(function (s) {
+        var d = new Date(s.logged_at);
+        var key = d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+        if (key !== curKey) {
+          curKey = key;
+          cur = { label: '', date: d, sets: [] };
+          groups.push(cur);
+        }
+        cur.sets.push(s);
+      });
+      var refNow = nowDate();
+      groups.forEach(function (g) {
+        g.label = dayLabel(g.date, refNow);
+        // Set number that day for that exercise, counting chronologically.
+        var n = {};
+        for (var i = g.sets.length - 1; i >= 0; i--) {
+          var s = g.sets[i];
+          n[s.exercise_ref] = (n[s.exercise_ref] || 0) + 1;
+          s._num = n[s.exercise_ref];
+        }
+      });
+      // "New best": the set beat every earlier set of that exercise.
+      var bestSoFar = {};
+      var isNewBest = {};
+      for (var i = sets.length - 1; i >= 0; i--) { // oldest first
+        var s = sets[i];
+        var prev = bestSoFar[s.exercise_ref];
+        isNewBest[s.id] = !prev || beats(s, prev);
+        if (!prev || beats(s, prev)) bestSoFar[s.exercise_ref] = s;
+      }
+
+      groups.forEach(function (g) {
+        host.appendChild(el('div', 'day', g.label));
+        g.sets.forEach(function (s) {
+          var row = el('div', 'list-row');
+          var grow = el('div', 'grow');
+          grow.appendChild(el('div', 'b', exerciseName(s.exercise_ref)));
+          grow.appendChild(el('div', 'small', 'Set ' + s._num + (s.seconds != null ? ', ' + fmtTime(s.seconds) : '')));
+          row.appendChild(grow);
+          if (String(s.id) === String(confirmDeleteId)) {
+            row.appendChild(el('span', 'small del-q', 'Delete this set?'));
+            var yes = el('button', 'del-yes', 'Delete');
+            yes.type = 'button';
+            yes.setAttribute('data-id', s.id);
+            var no = el('button', 'del-no', 'Keep');
+            no.type = 'button';
+            row.appendChild(yes);
+            row.appendChild(no);
+          } else {
+            var r = el('div', 'r');
+            r.appendChild(el('div', 'b', fmtSet(s)));
+            if (isNewBest[s.id]) r.appendChild(el('div', 'pr', 'New best'));
+            row.appendChild(r);
+            var bin = el('button', 'ico');
+            bin.type = 'button';
+            bin.setAttribute('aria-label', 'Delete set');
+            bin.setAttribute('data-id', s.id);
+            bin.innerHTML = ICON_BIN_SM;
+            row.appendChild(bin);
+          }
+          host.appendChild(row);
+        });
+      });
+    }
+
+    function renderAll() {
+      renderExerciseSelect();
+      renderProgress();
+      renderHistory();
+    }
+
+    // ── Actions ──────────────────────────────────────────────────────────
+    function showSaveError(msg) {
+      var p = $('save-error');
+      p.textContent = msg;
+      show(p);
+    }
+
+    function parseWeight(v) {
+      var t = String(v).trim().replace(',', '.');
+      if (!t) return { value: null };
+      var n = Number(t);
+      if (!isFinite(n)) return { error: 'Enter weight in kilograms, like 102.5.' };
+      return { value: n };
+    }
+    function parseReps(v) {
+      var t = String(v).trim();
+      if (!t) return { value: null };
+      var n = Number(t);
+      if (!isFinite(n) || Math.round(n) !== n) return { error: 'Enter reps as a whole number.' };
+      return { value: n };
+    }
+    function parseTime(v) {
+      var t = String(v).trim();
+      if (!t) return { value: null };
+      var m = /^(\d{1,3}):([0-5]\d)$/.exec(t);
+      if (m) return { value: parseInt(m[1], 10) * 60 + parseInt(m[2], 10) };
+      if (/^\d+$/.test(t)) return { value: parseInt(t, 10) }; // bare seconds
+      return { error: 'Enter time as m:ss, like 2:10.' };
+    }
+
+    function logSet() {
+      if (saving) return;
+      hide($('save-error'));
+      var w = parseWeight($('weight-input').value);
+      var r = parseReps($('reps-input').value);
+      var t = parseTime($('time-input').value);
+      if (w.error) return showSaveError(w.error);
+      if (r.error) return showSaveError(r.error);
+      if (t.error) return showSaveError(t.error);
+      if (w.value == null && r.value == null && t.value == null) {
+        return showSaveError('Enter at least one of weight, reps or time.');
+      }
+      saving = true;
+      $('log-btn').disabled = true;
+      api('POST', 'sets', {
+        exercise_ref: selectedRef,
+        weight_kg: w.value,
+        reps: r.value,
+        seconds: t.value,
+      }).then(function (res) {
+        saving = false;
+        $('log-btn').disabled = false;
+        if (!res.ok) {
+          return showSaveError(res.data && res.data.error
+            ? res.data.error
+            : "Couldn't save the set. Try again.");
+        }
+        // The set goes to the top of History; the fields keep their values.
+        sets.unshift(res.data.set);
+        confirmDeleteId = null;
+        renderAll();
+      }, function () {
+        saving = false;
+        $('log-btn').disabled = false;
+        showSaveError("Couldn't save the set. Try again.");
+      });
+    }
+
+    function loadAll() {
+      showLoading();
+      Promise.all([api('GET', 'exercises'), api('GET', 'sets')]).then(function (rs) {
+        if (!rs[0].ok || !rs[1].ok) return showError();
+        exercises = rs[0].data;
+        sets = rs[1].data.sets || [];
+        hide($('progress-loading'));
+        hide($('history-loading'));
+        renderAll();
+        if (selectedRef) prefillFromLast(selectedRef);
+      }, showError);
+    }
+
+    // ── Wiring ───────────────────────────────────────────────────────────
+    $('exercise-select').addEventListener('change', function () {
+      selectedRef = this.value;
+      prefillFromLast(selectedRef);
+      updateExerciseLink();
+      hide($('save-error'));
+    });
+
+    $('exercise-link').addEventListener('click', function () {
+      if (selectedRef && isOwn(selectedRef)) {
+        show($('remove-exercise-row'));
+      } else {
+        show($('add-exercise-row'));
+        hide($('add-exercise-error'));
+        $('new-exercise-name').focus();
+      }
+    });
+    $('remove-exercise-keep').addEventListener('click', function () {
+      hide($('remove-exercise-row'));
+    });
+    $('remove-exercise-btn').addEventListener('click', function () {
+      if (!selectedRef || !isOwn(selectedRef)) return;
+      var id = parseInt(selectedRef.slice(2), 10);
+      api('DELETE', 'exercises/' + id).then(function (res) {
+        if (!res.ok) return showSaveError("Couldn't remove the exercise. Try again.");
+        selectedRef = null;
+        progressRef = null;
+        hide($('remove-exercise-row'));
+        loadAll();
+      }, function () { showSaveError("Couldn't remove the exercise. Try again."); });
+    });
+    $('add-exercise-btn').addEventListener('click', function () {
+      var name = $('new-exercise-name').value.trim();
+      var p = $('add-exercise-error');
+      if (!name || name.length > 60) {
+        p.textContent = 'Give the exercise a name of 1 to 60 characters.';
+        show(p);
+        return;
+      }
+      hide(p);
+      api('POST', 'exercises', { name: name }).then(function (res) {
+        if (res.status === 409) {
+          p.textContent = 'You already have that exercise.';
+          show(p);
+          return;
+        }
+        if (!res.ok) {
+          p.textContent = "Couldn't add the exercise. Try again.";
+          show(p);
+          return;
+        }
+        exercises.own.push(res.data.exercise);
+        selectedRef = res.data.exercise.ref;
+        hide($('add-exercise-row'));
+        $('new-exercise-name').value = '';
+        renderExerciseSelect();
+        prefillFromLast(selectedRef);
+      }, function () {
+        p.textContent = "Couldn't add the exercise. Try again.";
+        show(p);
+      });
+    });
+
+    $('log-btn').addEventListener('click', logSet);
+
+    $('chips').addEventListener('click', function (ev) {
+      var t = ev.target.closest('.chip');
+      if (!t) return;
+      progressRef = t.getAttribute('data-ref');
+      renderProgress();
+    });
+
+    $('history').addEventListener('click', function (ev) {
+      var t = ev.target.closest('button');
+      if (!t) return;
+      if (t.classList.contains('ico')) {
+        confirmDeleteId = t.getAttribute('data-id');
+        renderHistory();
+      } else if (t.classList.contains('del-no')) {
+        confirmDeleteId = null;
+        renderHistory();
+      } else if (t.classList.contains('del-yes')) {
+        var id = t.getAttribute('data-id');
+        api('DELETE', 'sets/' + id).then(function (res) {
+          if (!res.ok) {
+            confirmDeleteId = null;
+            renderHistory();
+            return showSaveError("Couldn't delete the set. Try again.");
+          }
+          confirmDeleteId = null;
+          sets = sets.filter(function (s) { return String(s.id) !== String(id); });
+          renderAll();
+        }, function () {
+          confirmDeleteId = null;
+          renderHistory();
+          showSaveError("Couldn't delete the set. Try again.");
+        });
+      }
+    });
+
+    $('retry-btn').addEventListener('click', loadAll);
+
+    if (DEMO) show($('demo-note'));
+    renderExerciseSelect();
+    loadAll();
+  })();
+  </script>
 </body>
 </html>

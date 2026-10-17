@@ -95,24 +95,43 @@ tables you've marked private), etc.
 
 ## About Gymroom
 
-Log your workouts and watch your progress grow
+Log your workouts and watch your progress grow. One screen: pick an
+exercise (starter list or your own), log a set with weight, reps and time,
+and see your best set each week for the exercise you choose alongside the
+full history of every set. A best set is the heaviest weight, more reps
+winning a tie; without weight, the most reps; with neither, the longest
+time. Weeks start on Monday.
 
-_(add a sentence or two more of product context here so Claude Code has a
-shared understanding of what this app is for)_
+## App-specific conventions
+
+- Both tables (`exercises`, `sets`) are `staging:private` — they hold only
+  per-user workout data. Exercises are referenced from sets as
+  `s:<starter slug>` or `c:<exercises.id>`; removing an own exercise
+  deletes its sets. Rows created while a `?demo=1` request is in flight
+  carry `is_demo = true` and are filtered out of every response without it.
+- Weight in kilograms only (0–1000, steps of 0.25); time per set typed as
+  m:ss and stored as seconds (1–86400); reps 1–1000. A set stores at least
+  one of the three.
 
 ## Design
 
-This app's look. The first real version fills in the blanks; every later
-change follows it, and updates it when a request changes the look on purpose.
-
-- **Palette:** _(name the accent, any second colour and the neutrals, e.g.
-  "accent: tomato red; second: basil green; neutrals: warm greys")_
-- **Signature element:** _(the one thing on screen drawn from this app's
-  subject, which no other app would have)_
-- **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`
-  _(change their sizes in `tailwind.config.js` if you must, not their number)_
-- **One fixed look:** _(only for an app drawn as its own scene, such as a
-  game: which look, and why. Otherwise delete this line.)_
+- **Palette:** warm gym neutrals with one deep orange action colour.
+  Light: ground 250 247 243, surface 255 255 255, raised 243 238 232,
+  ink 33 27 22, muted 96 87 78, line 226 219 210, orange 194 65 12 with
+  white text on it, plate 33 27 22 (iron black), bar 168 160 152.
+  Dark, same hues: ground 24 20 17, surface 34 29 25, raised 46 40 35,
+  ink 245 240 234, muted 176 166 156, line 64 57 50, orange 251 146 60
+  with 43 17 4 text on it, plate 232 225 216 (pale plates read on a dark
+  ground), bar 120 112 104. Follows the viewer's Homeroom theme.
+- **Signature element:** the loaded barbell — a best weight drawn as real
+  plates on a 20 kg bar, 25 kg plates in the action orange (the red of
+  competition 25s), smaller ones in iron black, with a line saying what
+  is on the bar ("25 + 15 + 1.25 kg a side"). A best set under 20 kg or
+  without weight shows the empty bar and says so.
+- **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`;
+  the system's rounded face (`ui-rounded`), numbers in semibold (`.num`).
+- The screen's one job is logging the next set quickly: Log set is the
+  one filled button; everything else is for reading.
 
 The kit is in `styles/tailwind-input.css`: colour tokens with a light and
 a dark value (named in `tailwind.config.js`), and a few components

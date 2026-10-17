@@ -1,0 +1,134 @@
+/* The screens the spec drew, carried over by the platform before the first
+   version was built (screen 1 is public/index.html's main screen; screen 2,
+   if any, its <template data-spec-screen="2">). Colours are the design kit's
+   tokens, rgb(var(--accent)), so they follow the light and the dark look. */
+
+/* Each screen is one centred column: the phone width it was drawn at grows
+   to a readable column on a wider window, never rows and buttons stretched
+   across the window. Remove this only for an app that fills the window by
+   design, such as a map. */
+[data-spec-screen] {
+  width: 100%;
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+.gr {
+  width: 390px;
+  min-height: 1320px;
+  background: rgb(var(--ground));
+  color: rgb(var(--fg));
+  font-family: ui-rounded,system-ui,-apple-system,sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  padding: 0 0 32px;
+  box-sizing: border-box;
+}
+
+.gr * {box-sizing:border-box;margin:0}
+
+.top {
+  padding: 20px 16px 8px;
+}
+
+.title {font-size:28px;line-height:36px;font-weight:700}
+
+.small {font-size:14px;line-height:20px;color:rgb(var(--muted))}
+
+.sec {padding:0 16px;margin-top:20px}
+
+.section-label {font-size:14px;line-height:20px;font-weight:500;color:rgb(var(--muted));margin-bottom:8px;padding:0 4px}
+
+.card {background:rgb(var(--surface));border:1px solid rgb(var(--line));border-radius:12px;padding:16px}
+
+.field {display:flex;align-items:center;min-height:44px;width:100%;border:1px solid rgb(var(--line));border-radius:8px;background:rgb(var(--surface));padding:8px 12px;font-size:16px;color:rgb(var(--fg));justify-content:space-between}
+
+.three {display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+
+.three .small {margin-bottom:4px}
+
+.num {font-weight:600;font-size:20px;line-height:28px}
+
+.btn-primary {display:flex;width:100%;min-height:52px;margin-top:16px;align-items:center;justify-content:center;gap:8px;border-radius:8px;background:rgb(var(--accent));color:rgb(var(--on-accent));font-size:16px;font-weight:700;border:0}
+
+.link {display:flex;align-items:center;gap:4px;min-height:44px;font-size:14px;font-weight:600;color:rgb(var(--accent));background:none;border:0;padding:0}
+
+/* The row scrolls sideways and lets its last chip run past the right
+   gutter: it reaches the screen edge (negative margins) while the 16 px
+   start inset is padding, which scrolls away with the chips. */
+.chips {display:flex;gap:8px;overflow-x:auto;margin:0 -16px 12px;padding-left:16px}
+
+.chip {min-height:44px;padding:10px 14px;border-radius:22px;background:rgb(var(--raised));font-size:14px;line-height:24px;white-space:nowrap;display:flex;align-items:center}
+
+.chip.on {background:rgb(var(--fg));color:rgb(var(--ground))}
+
+.bar {display:flex;align-items:center;height:32px;margin:14px 0 6px}
+
+.end {width:12px;height:10px;background:rgb(var(--bar));border-radius:2px}
+
+.shaft {height:6px;width:40px;background:rgb(var(--bar))}
+
+.collar {width:6px;height:14px;background:rgb(var(--bar));border-radius:2px;margin-right:2px}
+
+.plates {display:flex;align-items:center;flex:none}
+
+.p {border-radius:3px;margin-right:2px;background:rgb(var(--plate))}
+
+.p.o {background:rgb(var(--accent))}
+
+.rest {flex:1;height:8px;background:rgb(var(--bar));border-radius:0 4px 4px 0}
+
+.row {display:flex;justify-content:space-between;align-items:center;gap:12px}
+
+.list {background:rgb(var(--surface));border:1px solid rgb(var(--line));border-radius:12px;overflow:hidden}
+
+.list-row {display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 4px 10px 16px;border-top:1px solid rgb(var(--line))}
+
+.list-row:first-child {border-top:0}
+
+.wk {padding:12px 16px}
+
+.grow {flex:1}
+
+.b {font-weight:600}
+
+.r {text-align:right}
+
+.pr {font-size:14px;line-height:20px;color:rgb(var(--accent));font-weight:600}
+
+.day {padding:8px 16px;font-size:14px;line-height:20px;color:rgb(var(--muted));font-weight:500;background:rgb(var(--raised))}
+
+.ico {width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:rgb(var(--muted));background:none;border:0;flex:none}
+
+/* Behaviour additions the script needs: the select that fills the drawn
+   exercise field, the demo-note line, the add/remove rows, the in-row
+   delete confirmation and the save-error line. Same tokens, nothing new. */
+.field select {
+  appearance:none;
+  -webkit-appearance:none;
+  background:none;
+  border:0;
+  font:inherit;
+  font-weight:600;
+  color:rgb(var(--fg));
+  width:100%;
+  height:100%;
+  padding:0;
+  outline:none;
+  text-align:left;
+}
+.field > svg {flex:none;pointer-events:none}
+.demo-note {padding:8px 16px;text-align:center;font-size:14px;line-height:20px;color:rgb(var(--fg));background:rgb(var(--raised))}
+.add-row {display:flex;gap:8px;margin-top:4px}
+.add-row .field {flex:1;min-width:0}
+.add-btn,.remove-yes,.remove-no {min-width:72px;font-size:14px}
+.remove-yes,.del-yes {color:rgb(var(--danger))}
+.add-error,.save-error {margin-top:8px;font-size:14px;line-height:20px;color:rgb(var(--danger))}
+.remove-q {margin-top:12px}
+.del-q {flex:none}
+.del-yes,.del-no {min-height:44px;padding:0 12px;background:none;border:0;font-size:14px;font-weight:600;flex:none}
+.del-no {color:rgb(var(--fg))}
+.chip:focus-visible,.link:focus-visible,.ico:focus-visible,.del-yes:focus-visible,.del-no:focus-visible,
+.add-btn:focus-visible,.remove-yes:focus-visible,.remove-no:focus-visible,.day:focus-visible {
+  outline:2px solid rgb(var(--focus));outline-offset:2px;
+}

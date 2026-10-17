@@ -55,6 +55,13 @@ module.exports = {
         danger: token('danger'),
         'on-danger': token('on-danger'),
         focus: token('focus'), // the keyboard focus ring
+        plate: token('plate'), // barbell plates (the signature element)
+        bar: token('bar'), // the barbell bar
+      },
+      // The system's rounded face, with a plain fallback for systems
+      // without one.
+      fontFamily: {
+        sans: ['ui-rounded', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       // The type scale: four sizes, and nothing in between.
       fontSize: {
