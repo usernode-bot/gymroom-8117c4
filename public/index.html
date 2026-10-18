@@ -114,21 +114,12 @@
        Change them where behaviour needs it; do not redraw them. -->
   <div data-spec-screen="1">
     <div class="gr">
-    <div class="demo-note" id="demo-note" data-usernode-demo-note hidden>Staging demo: sample workouts</div>
+    <div class="demo-note" id="demo-note" data-usernode-demo-note hidden>Staging demo: sample Hyrox training</div>
     <div class="top"><div class="small">Gymroom</div><div class="title">Log a set</div></div>
 
     <div class="sec"><div class="card" id="log-form">
-    <div class="row" style="margin-top:-12px"><div class="small">Exercise</div><button class="link" id="exercise-link" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg><span id="exercise-link-text">Add your own</span></button></div>
-    <div id="add-exercise-row" hidden>
-      <div class="small" style="margin-top:12px">New exercise name</div>
-      <div class="add-row"><input class="field" id="new-exercise-name" maxlength="60" placeholder="e.g. Leg press"><button class="btn-secondary add-btn" id="add-exercise-btn" type="button">Add</button></div>
-      <p class="add-error" id="add-exercise-error" hidden></p>
-    </div>
-    <div id="remove-exercise-row" hidden>
-      <p class="small remove-q">Remove this exercise and its sets?</p>
-      <div class="add-row"><button class="btn-secondary remove-yes" id="remove-exercise-btn" type="button">Remove</button><button class="btn-secondary remove-no" id="remove-exercise-keep" type="button">Keep</button></div>
-    </div>
-    <div class="field sel" style="margin-top:12px"><select id="exercise-select" aria-label="Exercise"></select><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
+    <div class="small" style="margin-top:12px"><label for="exercise-select">Station</label></div>
+    <div class="field sel" style="margin-top:4px"><select id="exercise-select" aria-label="Station"></select><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
     <div class="three">
     <div><div class="small"><label for="weight-input">Weight, kg</label></div><input class="field num" id="weight-input" inputmode="decimal" placeholder="e.g. 102.5"></div>
     <div><div class="small"><label for="reps-input">Reps</label></div><input class="field num" id="reps-input" inputmode="numeric" placeholder="e.g. 5"></div>
@@ -156,11 +147,14 @@
     <div id="progress-body" hidden>
     <div class="chips" id="chips"></div>
     <div class="card">
+    <div id="card-main">
     <div class="row"><div><div class="num" id="best-line"></div><div class="small" id="best-sub"></div></div><div class="pr" id="best-badge" hidden>New best</div></div>
-    <div class="bar"><div class="end"></div><div class="shaft"></div><div class="collar"></div><span id="plates" class="plates"></span><div class="rest"></div></div>
-    <div class="small" id="bar-note"></div>
+    <div id="bar-wrap"><div class="bar"><div class="end"></div><div class="shaft"></div><div class="collar"></div><span id="plates" class="plates"></span><div class="rest"></div></div>
+    <div class="small" id="bar-note"></div></div>
     </div>
-    <div class="section-label" style="margin-top:16px">Best set each week</div>
+    <div class="state-empty" id="station-empty" hidden><p id="station-empty-text"></p></div>
+    </div>
+    <div class="section-label" style="margin-top:16px" id="weeks-label">Best set each week</div>
     <div class="list" id="weeks"></div>
     </div>
     </div>
@@ -194,23 +188,25 @@
     var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     var WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    // The built-in starter list, the same slugs server.js serves, so the
-    // Exercise select is filled while loading and when loading fails.
-    var STARTER = [
-      { ref: 's:squat', name: 'Barbell back squat' },
-      { ref: 's:bench-press', name: 'Bench press' },
-      { ref: 's:deadlift', name: 'Deadlift' },
-      { ref: 's:overhead-press', name: 'Overhead press' },
-      { ref: 's:barbell-row', name: 'Barbell row' },
-      { ref: 's:pull-up', name: 'Pull-up' },
-      { ref: 's:push-up', name: 'Push-up' },
-      { ref: 's:plank', name: 'Plank' },
+    // The Hyrox race: Running, then the eight stations in race order — the
+    // same fixed list server.js serves, so the Station select is filled
+    // while loading and when loading fails.
+    var STATIONS = [
+      { ref: 's:running', name: 'Running', order: 0, weighted: false },
+      { ref: 's:ski-erg', name: 'SkiErg', order: 1, weighted: false },
+      { ref: 's:sled-push', name: 'Sled push', order: 2, weighted: true },
+      { ref: 's:sled-pull', name: 'Sled pull', order: 3, weighted: true },
+      { ref: 's:burpee-broad-jumps', name: 'Burpee broad jumps', order: 4, weighted: false },
+      { ref: 's:rowing', name: 'Rowing', order: 5, weighted: false },
+      { ref: 's:farmers-carry', name: 'Farmers carry', order: 6, weighted: true },
+      { ref: 's:sandbag-lunges', name: 'Sandbag lunges', order: 7, weighted: true },
+      { ref: 's:wall-balls', name: 'Wall balls', order: 8, weighted: true },
     ];
 
-    var exercises = { starter: STARTER, own: [] };
+    var stations = STATIONS;
     var sets = [];
-    var selectedRef = null;   // the log form's exercise
-    var progressRef = null;   // the Progress section's exercise
+    var selectedRef = null;   // the log form's station
+    var progressRef = null;   // the Progress section's station
     var confirmDeleteId = null;
     var saving = false;
 
@@ -257,7 +253,7 @@
     }
     function fmtSet(s) {
       var w = s.weight_kg != null ? parseFloat(s.weight_kg) : null;
-      if (w != null && w > 0) return fmtWeight(w) + ' kg × ' + (s.reps != null ? s.reps : '?');
+      if (w != null && w > 0) return fmtWeight(w) + ' kg' + (s.reps != null ? ' × ' + s.reps : '');
       if (s.reps != null) return 'Body × ' + s.reps;
       if (s.seconds != null) return fmtTime(s.seconds);
       return '—';
@@ -278,7 +274,8 @@
     }
 
     // A best set: heaviest weight, more reps winning a tie; without weight,
-    // the most reps; with neither, the longest time.
+    // the most reps; then the shorter time — for timed work, faster is
+    // better, and a set with a time beats one without when the rest ties.
     function beats(a, b) {
       var aw = a.weight_kg != null && parseFloat(a.weight_kg) > 0;
       var bw = b.weight_kg != null && parseFloat(b.weight_kg) > 0;
@@ -287,7 +284,11 @@
       }
       if (aw !== bw) return aw;
       if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
-      return (a.seconds || 0) > (b.seconds || 0);
+      var at = a.seconds != null && a.seconds > 0;
+      var bt = b.seconds != null && b.seconds > 0;
+      if (at !== bt) return at;
+      if (at && a.seconds !== b.seconds) return a.seconds < b.seconds;
+      return false;
     }
 
     function setsFor(ref) {
@@ -312,48 +313,33 @@
       show($('load-error'));
     }
 
-    // ── Exercises ────────────────────────────────────────────────────────
-    var ICON_PLUS = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-    var ICON_BIN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+    // ── Stations ─────────────────────────────────────────────────────────
     var ICON_BIN_SM = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
 
-    function allExercises() { return exercises.starter.concat(exercises.own); }
-    function exerciseName(ref) {
-      var list = allExercises();
-      for (var i = 0; i < list.length; i++) if (list[i].ref === ref) return list[i].name;
-      return 'Exercise';
+    function stationByRef(ref) {
+      for (var i = 0; i < stations.length; i++) if (stations[i].ref === ref) return stations[i];
+      return null;
     }
-    function isOwn(ref) { return /^c:/.test(ref); }
+    function exerciseName(ref) {
+      var s = stationByRef(ref);
+      return s ? s.name : 'Exercise';
+    }
+    // Numbered in the picker and the chips (Running is the run, not a
+    // station); unnumbered in History.
+    function stationLabel(s) { return s.order ? s.order + ' ' + s.name : s.name; }
 
     function renderExerciseSelect() {
-      if (!selectedRef || !allExercises().some(function (e) { return e.ref === selectedRef; })) {
-        selectedRef = exercises.starter.length ? exercises.starter[0].ref : (exercises.own[0] ? exercises.own[0].ref : null);
+      if (!selectedRef || !stationByRef(selectedRef)) {
+        selectedRef = stations.length ? stations[0].ref : null; // Running first
       }
       var sel = $('exercise-select');
       sel.innerHTML = '';
-      var g = el('optgroup'); g.label = 'Exercises';
-      exercises.starter.forEach(function (x) {
-        var o = el('option', '', x.name); o.value = x.ref; g.appendChild(o);
+      stations.forEach(function (s) {
+        var o = el('option', '', stationLabel(s));
+        o.value = s.ref;
+        sel.appendChild(o);
       });
-      if (exercises.own.length) {
-        var g2 = el('optgroup'); g2.label = 'Your exercises';
-        exercises.own.forEach(function (x) {
-          var o = el('option', '', x.name); o.value = x.ref; g2.appendChild(o);
-        });
-        sel.appendChild(g2);
-      }
-      sel.insertBefore(g, sel.firstChild);
       if (selectedRef) sel.value = selectedRef;
-      updateExerciseLink();
-    }
-
-    function updateExerciseLink() {
-      var own = selectedRef && isOwn(selectedRef);
-      $('exercise-link-text').textContent = own ? 'Remove exercise' : 'Add your own';
-      $('exercise-link').innerHTML = (own ? ICON_BIN : ICON_PLUS) + '<span id="exercise-link-text">' +
-        (own ? 'Remove exercise' : 'Add your own') + '</span>';
-      hide($('remove-exercise-row'));
-      hide($('add-exercise-row'));
     }
 
     function prefillFromLast(ref) {
@@ -385,20 +371,21 @@
         return;
       }
       hide($('progress-empty'));
-      if (!progressRef || refs.indexOf(progressRef) === -1) progressRef = refs[0];
-      renderChips(refs);
+      // The station opened first is the one logged most recently; chips
+      // list every station either way, so an unlogged one stays open.
+      if (!progressRef || !stationByRef(progressRef)) progressRef = refs[0];
+      renderChips();
       renderCard();
-      renderWeeks();
       show($('progress-body'));
     }
 
-    function renderChips(refs) {
+    function renderChips() {
       var host = $('chips');
       host.innerHTML = '';
-      refs.forEach(function (ref) {
-        var c = el('button', ref === progressRef ? 'chip on' : 'chip', exerciseName(ref));
+      stations.forEach(function (s) {
+        var c = el('button', s.ref === progressRef ? 'chip on' : 'chip', stationLabel(s));
         c.type = 'button';
-        c.setAttribute('data-ref', ref);
+        c.setAttribute('data-ref', s.ref);
         host.appendChild(c);
       });
     }
@@ -408,7 +395,23 @@
     var PLATE_ORDER = [25, 20, 15, 10, 5, 2.5, 1.25];
 
     function renderCard() {
-      var best = bestOf(setsFor(progressRef));
+      var st = stationByRef(progressRef);
+      var list = setsFor(progressRef);
+      if (!list.length) {
+        // A station with no sets: the card says so, the weeks list hides.
+        hide($('card-main'));
+        $('station-empty-text').textContent =
+          'No sets of ' + (st ? st.name : 'this station') + ' yet. Log one above.';
+        show($('station-empty'));
+        hide($('weeks-label'));
+        hide($('weeks'));
+        return;
+      }
+      show($('card-main'));
+      hide($('station-empty'));
+      show($('weeks-label'));
+      show($('weeks'));
+      var best = bestOf(list);
       var w = best.weight_kg != null ? parseFloat(best.weight_kg) : null;
       $('best-line').textContent = fmtSet(best);
       // Inside a sentence the relative day is lowercase; weekdays and dates
@@ -419,34 +422,41 @@
       $('best-sub').textContent = 'Best set ever, logged ' + day;
       var isNew = sameLocalDay(best.logged_at, nowDate());
       if (isNew) show($('best-badge')); else hide($('best-badge'));
-      // The loaded barbell: the best weight as real plates on a 20 kg bar.
+      // The loaded barbell — the best weight as real plates on a 20 kg
+      // bar — is drawn for the weighted stations only.
       var holder = $('plates');
       holder.innerHTML = '';
-      var note;
-      if (w == null || w <= 0) {
-        note = 'Bodyweight: the empty bar';
-      } else if (w < 20) {
-        note = 'Under 20 kg: the empty bar';
-      } else {
-        var perSide = (w - 20) / 2, left = perSide, parts = [];
-        PLATE_ORDER.forEach(function (p) {
-          while (left >= p - 1e-9) {
-            left = Math.round((left - p) * 100) / 100;
-            parts.push(p);
-            var d = el('div', p === 25 ? 'p o' : 'p');
-            d.style.width = PLATE_SIZES[String(p)][0] + 'px';
-            d.style.height = PLATE_SIZES[String(p)][1] + 'px';
-            holder.appendChild(d);
-          }
-        });
-        if (parts.length) {
-          note = 'On the bar: ' + parts.join(' + ') + ' kg a side' +
-            (left > 0 ? ' plus ' + fmtWeight(left) + ' kg' : '') + ', 20 kg bar';
+      if (st && st.weighted) {
+        show($('bar-wrap'));
+        var note;
+        if (w == null || w <= 0) {
+          note = 'Bodyweight: the empty bar';
+        } else if (w < 20) {
+          note = 'Under 20 kg: the empty bar';
         } else {
-          note = 'On the bar: the bare 20 kg bar';
+          var perSide = (w - 20) / 2, left = perSide, parts = [];
+          PLATE_ORDER.forEach(function (p) {
+            while (left >= p - 1e-9) {
+              left = Math.round((left - p) * 100) / 100;
+              parts.push(p);
+              var d = el('div', p === 25 ? 'p o' : 'p');
+              d.style.width = PLATE_SIZES[String(p)][0] + 'px';
+              d.style.height = PLATE_SIZES[String(p)][1] + 'px';
+              holder.appendChild(d);
+            }
+          });
+          if (parts.length) {
+            note = 'On the bar: ' + parts.join(' + ') + ' kg a side' +
+              (left > 0 ? ' plus ' + fmtWeight(left) + ' kg' : '') + ', 20 kg bar';
+          } else {
+            note = 'On the bar: the bare 20 kg bar';
+          }
         }
+        $('bar-note').textContent = note;
+      } else {
+        hide($('bar-wrap'));
       }
-      $('bar-note').textContent = note;
+      renderWeeks();
     }
 
     function compareText(best, prevBest) {
@@ -465,10 +475,11 @@
           : { cls: 'small', text: 'Down ' + (-rd) + (rd === -1 ? ' rep' : ' reps') };
       }
       if (best.reps == null && prevBest.reps == null && best.seconds != null && prevBest.seconds != null && best.seconds !== prevBest.seconds) {
+        // Timed work: shorter is better, so a falling time is the win.
         var sd = best.seconds - prevBest.seconds;
-        return sd > 0
-          ? { cls: 'pr', text: 'Up ' + fmtTime(sd) }
-          : { cls: 'small', text: 'Down ' + fmtTime(-sd) };
+        return sd < 0
+          ? { cls: 'pr', text: 'Faster by ' + fmtTime(-sd) }
+          : { cls: 'small', text: 'Slower by ' + fmtTime(sd) };
       }
       return { cls: 'small', text: 'Same as before' };
     }
@@ -675,7 +686,9 @@
       showLoading();
       Promise.all([api('GET', 'exercises'), api('GET', 'sets')]).then(function (rs) {
         if (!rs[0].ok || !rs[1].ok) return showError();
-        exercises = rs[0].data;
+        if (rs[0].data && rs[0].data.stations && rs[0].data.stations.length) {
+          stations = rs[0].data.stations;
+        }
         sets = rs[1].data.sets || [];
         hide($('progress-loading'));
         hide($('history-loading'));
@@ -688,63 +701,7 @@
     $('exercise-select').addEventListener('change', function () {
       selectedRef = this.value;
       prefillFromLast(selectedRef);
-      updateExerciseLink();
       hide($('save-error'));
-    });
-
-    $('exercise-link').addEventListener('click', function () {
-      if (selectedRef && isOwn(selectedRef)) {
-        show($('remove-exercise-row'));
-      } else {
-        show($('add-exercise-row'));
-        hide($('add-exercise-error'));
-        $('new-exercise-name').focus();
-      }
-    });
-    $('remove-exercise-keep').addEventListener('click', function () {
-      hide($('remove-exercise-row'));
-    });
-    $('remove-exercise-btn').addEventListener('click', function () {
-      if (!selectedRef || !isOwn(selectedRef)) return;
-      var id = parseInt(selectedRef.slice(2), 10);
-      api('DELETE', 'exercises/' + id).then(function (res) {
-        if (!res.ok) return showSaveError("Couldn't remove the exercise. Try again.");
-        selectedRef = null;
-        progressRef = null;
-        hide($('remove-exercise-row'));
-        loadAll();
-      }, function () { showSaveError("Couldn't remove the exercise. Try again."); });
-    });
-    $('add-exercise-btn').addEventListener('click', function () {
-      var name = $('new-exercise-name').value.trim();
-      var p = $('add-exercise-error');
-      if (!name || name.length > 60) {
-        p.textContent = 'Give the exercise a name of 1 to 60 characters.';
-        show(p);
-        return;
-      }
-      hide(p);
-      api('POST', 'exercises', { name: name }).then(function (res) {
-        if (res.status === 409) {
-          p.textContent = 'You already have that exercise.';
-          show(p);
-          return;
-        }
-        if (!res.ok) {
-          p.textContent = "Couldn't add the exercise. Try again.";
-          show(p);
-          return;
-        }
-        exercises.own.push(res.data.exercise);
-        selectedRef = res.data.exercise.ref;
-        hide($('add-exercise-row'));
-        $('new-exercise-name').value = '';
-        renderExerciseSelect();
-        prefillFromLast(selectedRef);
-      }, function () {
-        p.textContent = "Couldn't add the exercise. Try again.";
-        show(p);
-      });
     });
 
     $('log-btn').addEventListener('click', logSet);

@@ -151,18 +151,24 @@ app.get('/health', (_req, res) => {
 });
 
 // ── Gymroom ──────────────────────────────────────────────────────────────
-// Two private tables: which exercises a person added, and the sets they
-// logged. Both hold only per-user workout data, so both are staging:private.
-const STARTER_EXERCISES = [
-  { slug: 'squat', name: 'Barbell back squat' },
-  { slug: 'bench-press', name: 'Bench press' },
-  { slug: 'deadlift', name: 'Deadlift' },
-  { slug: 'overhead-press', name: 'Overhead press' },
-  { slug: 'barbell-row', name: 'Barbell row' },
-  { slug: 'pull-up', name: 'Pull-up' },
-  { slug: 'push-up', name: 'Push-up' },
-  { slug: 'plank', name: 'Plank' },
+// Two private tables: the sets a person logged, and (no longer written) the
+// own exercises a person once added. Both hold only per-user workout data,
+// so both are staging:private. The Hyrox stations are a fixed, append-only
+// list in code, like the starter list was: sets reference the slugs, so
+// never rename or remove one. The exercises table stays for data already in
+// it but is no longer read or written.
+const STATIONS = [
+  { slug: 'running', name: 'Running', order: 0, weighted: false },
+  { slug: 'ski-erg', name: 'SkiErg', order: 1, weighted: false },
+  { slug: 'sled-push', name: 'Sled push', order: 2, weighted: true },
+  { slug: 'sled-pull', name: 'Sled pull', order: 3, weighted: true },
+  { slug: 'burpee-broad-jumps', name: 'Burpee broad jumps', order: 4, weighted: false },
+  { slug: 'rowing', name: 'Rowing', order: 5, weighted: false },
+  { slug: 'farmers-carry', name: 'Farmers carry', order: 6, weighted: true },
+  { slug: 'sandbag-lunges', name: 'Sandbag lunges', order: 7, weighted: true },
+  { slug: 'wall-balls', name: 'Wall balls', order: 8, weighted: true },
 ];
+const STATION_REFS = STATIONS.map((s) => 's:' + s.slug);
 
 async function setupSchema() {
   await pool.query(`CREATE TABLE IF NOT EXISTS exercises (
@@ -195,66 +201,15 @@ function demoMode(req) {
   return IS_STAGING && req.query.demo === '1';
 }
 
-// ── Exercises ────────────────────────────────────────────────────────────
-app.get('/api/exercises', async (req, res) => {
-  try {
-    const own = req.user
-      ? await pool.query(
-          'SELECT id, name FROM exercises WHERE owner_id = $1 ORDER BY created_at, id',
-          [req.user.id])
-      : { rows: [] };
-    res.json({
-      starter: STARTER_EXERCISES.map((e) => ({ ref: 's:' + e.slug, name: e.name })),
-      own: own.rows.map((r) => ({ ref: 'c:' + r.id, id: r.id, name: r.name })),
-    });
-  } catch (err) {
-    console.error('GET /api/exercises failed: ' + err.message);
-    res.status(500).json({ error: 'Could not load exercises' });
-  }
-});
-
-app.post('/api/exercises', async (req, res) => {
-  try {
-    const name = req.body && typeof req.body.name === 'string' ? req.body.name.trim() : '';
-    if (!name || name.length > 60) {
-      return res.status(400).json({ error: 'Give the exercise a name of 1 to 60 characters.' });
-    }
-    // Unique per owner, ignoring case, and never a copy of a starter name.
-    const dupStarter = STARTER_EXERCISES.some(
-      (e) => e.name.toLowerCase() === name.toLowerCase());
-    const dupOwn = await pool.query(
-      'SELECT 1 FROM exercises WHERE owner_id = $1 AND lower(name) = lower($2)',
-      [req.user.id, name]);
-    if (dupStarter || dupOwn.rowCount > 0) {
-      return res.status(409).json({ error: 'You already have that exercise.' });
-    }
-    const ins = await pool.query(
-      'INSERT INTO exercises (owner_id, name, is_demo) VALUES ($1, $2, $3) RETURNING id, name',
-      [req.user.id, name, demoMode(req)]);
-    res.status(201).json({ exercise: { ref: 'c:' + ins.rows[0].id, id: ins.rows[0].id, name: ins.rows[0].name } });
-  } catch (err) {
-    console.error('POST /api/exercises failed: ' + err.message);
-    res.status(500).json({ error: 'Could not add the exercise' });
-  }
-});
-
-app.delete('/api/exercises/:id', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isInteger(id)) return res.status(404).json({ error: 'Not found' });
-    const del = await pool.query(
-      'DELETE FROM exercises WHERE id = $1 AND owner_id = $2 RETURNING id',
-      [id, req.user.id]);
-    if (del.rowCount === 0) return res.status(404).json({ error: 'Not found' });
-    // Removing an exercise takes its sets with it.
-    await pool.query(
-      "DELETE FROM sets WHERE owner_id = $1 AND exercise_ref = $2",
-      [req.user.id, 'c:' + id]);
-    res.json({ deleted: id });
-  } catch (err) {
-    console.error('DELETE /api/exercises/:id failed: ' + err.message);
-    res.status(500).json({ error: 'Could not remove the exercise' });
-  }
+// ── Stations ─────────────────────────────────────────────────────────────
+// The stations are a fixed list in code, so this is a constant reply: no
+// table read, and it works the same for guests.
+app.get('/api/exercises', (_req, res) => {
+  res.json({
+    stations: STATIONS.map((s) => ({
+      ref: 's:' + s.slug, name: s.name, order: s.order, weighted: s.weighted,
+    })),
+  });
 });
 
 // ── Sets ─────────────────────────────────────────────────────────────────
@@ -262,12 +217,15 @@ app.get('/api/sets', async (req, res) => {
   const demo = demoMode(req);
   try {
     if (demo && req.user) await seedDemoSets(req.user.id, req.now);
+    // Only station sets are returned. Sets logged against the old starter
+    // list and own exercises stay saved but hidden.
     const rows = req.user
       ? await pool.query(
           'SELECT id, exercise_ref, weight_kg, reps, seconds, logged_at, is_demo FROM sets ' +
-          'WHERE owner_id = $1' + (demo ? '' : ' AND NOT is_demo') +
+          'WHERE owner_id = $1 AND exercise_ref = ANY($2)' +
+          (demo ? '' : ' AND NOT is_demo') +
           ' ORDER BY logged_at DESC, id DESC',
-          [req.user.id])
+          [req.user.id, STATION_REFS])
       : { rows: [] };
     res.json({ sets: rows.rows });
   } catch (err) {
@@ -303,17 +261,9 @@ app.post('/api/sets', async (req, res) => {
         error: 'Enter at least one of weight, reps or time, each within its range.' });
     }
 
-    // The ref must be a starter exercise or one of the user's own.
-    let refOk = false;
+    // The ref must be one of the fixed Hyrox stations.
     const m = /^s:(.+)$/.exec(ref);
-    if (m && STARTER_EXERCISES.some((e) => e.slug === m[1])) refOk = true;
-    const c = /^c:(\d+)$/.exec(ref);
-    if (c) {
-      const own = await pool.query(
-        'SELECT 1 FROM exercises WHERE id = $1 AND owner_id = $2',
-        [parseInt(c[1], 10), req.user.id]);
-      refOk = own.rowCount > 0;
-    }
+    const refOk = !!(m && STATIONS.some((e) => e.slug === m[1]));
     if (!refOk) return res.status(400).json({ error: 'Unknown exercise.' });
 
     const ins = await pool.query(
@@ -343,56 +293,63 @@ app.delete('/api/sets/:id', async (req, res) => {
 });
 
 // ── Staging demo (a first version's populated demo, ?demo=1 only) ────────
-// Five weeks of the viewer's own training: 45 sets across the starter
-// exercises, squat climbing 95 → 102.5 kg with today's set the new best.
-// Fixed demo_keys and ON CONFLICT DO NOTHING keep a reload from adding
-// anything and keep deletions deleted.
-const DEMO_ORDER = ['s:squat', 's:bench-press', 's:deadlift', 's:overhead-press', 's:pull-up', 's:plank'];
-// Newest first: [weight_kg, reps] or, for planks, seconds in slot 3.
+// Six weeks of Hyrox training: every session logs its run plus two
+// stations in race order, so each station trains four times across four
+// weeks and all of them have weekly bests. Runs get faster 5:40 → 5:05 and
+// the sled push climbs to 150 kg, with today's run and sled push both new
+// bests. Fixed demo_keys and ON CONFLICT DO NOTHING keep a reload from
+// adding anything and keep deletions deleted.
+// Per station, newest first: [weight_kg, reps, seconds], null where unused.
 const DEMO_LADDERS = {
-  's:squat': [[102.5, 5], [100, 5], [100, 5], [97.5, 5], [97.5, 5], [95, 5], [95, 5], [95, 5]],
-  's:bench-press': [[80, 6], [77.5, 6], [77.5, 6], [75, 6], [75, 6], [72.5, 8], [72.5, 6], [72.5, 6]],
-  's:deadlift': [[120, 5], [117.5, 5], [115, 5], [115, 3], [112.5, 5], [110, 5], [110, 5], [110, 3]],
-  's:overhead-press': [[45, 6], [45, 6], [42.5, 6], [42.5, 8], [42.5, 6], [40, 6], [40, 8], [40, 6]],
+  's:running': [
+    [null, null, 305], [null, null, 307], [null, null, 309],
+    [null, null, 313], [null, null, 315], [null, null, 317],
+    [null, null, 320], [null, null, 322], [null, null, 324],
+    [null, null, 327], [null, null, 330], [null, null, 333],
+    [null, null, 335], [null, null, 338], [null, null, 340],
+  ],
+  's:ski-erg': [[null, null, 265], [null, null, 270], [null, null, 275], [null, null, 290]],
+  's:sled-push': [[150, null, 65], [140, null, 66], [130, null, 68], [110, null, 70]],
+  's:sled-pull': [[105, null, 68], [95, null, 70], [90, null, 72], [80, null, 75]],
+  's:burpee-broad-jumps': [[null, null, 290], [null, null, 300], [null, null, 310], [null, null, 330]],
+  's:rowing': [[null, null, 270], [null, null, 275], [null, null, 285], [null, null, 295]],
+  's:farmers-carry': [[24, null, 60], [24, null, 64], [24, null, 68], [24, null, 72]],
+  's:sandbag-lunges': [[20, null, 90], [20, null, 95], [20, null, 100], [20, null, 105]],
+  's:wall-balls': [[6, 100, null], [6, 90, null], [6, 80, null], [6, 60, null]],
 };
-const DEMO_REPS_LADDER = [10, 9, 9, 8, 8, 8, 7, 7];      // pull-up, bodyweight
-const DEMO_PLANK_LADDER = [150, 135, 140, 125, 130, 115, 120, 110]; // plank, seconds
-const DEMO_SET_TIMES = { 's:squat': 130, 's:bench-press': 105, 's:deadlift': 120, 's:overhead-press': 90, 's:pull-up': 48 };
+// The eight stations in race order (Running is handled separately below).
+const DEMO_STATION_REFS = STATION_REFS.slice(1);
 const DEMO_TIMES_OF_DAY = [18 * 60 + 30, 7 * 60 + 45, 12 * 60 + 15];
 
-const DEMO_GEN = 'demo-v2';
+const DEMO_GEN = 'demo-v3';
 
 function seedDemoSets(ownerId, now) {
-  // 15 sessions at ~2.5-day gaps ≈ 5 weeks; each session rotates 3 of the 6
-  // exercises, so every exercise gets a weekly best.
-  const occCount = {};
+  // 15 sessions at ~2.5-day gaps ≈ 5 weeks. Session s logs its run, then
+  // stations (2s) % 8 and (2s + 1) % 8 in that order — so today's session
+  // ends on the sled push — and each station appears four times, four
+  // sessions apart. Occurrence counts index the ladders, newest first.
+  const occ = {};
   const rows = [];
   let n = 0;
   for (let s = 0; s < 15; s++) {
     const dayBack = Math.round((s * 35) / 14);
-    for (let k = 0; k < 3; k++) {
-      const ref = DEMO_ORDER[(3 * s + k) % 6];
-      const occ = occCount[ref] || 0;
-      occCount[ref] = occ + 1;
-      let weight = null, reps = null, seconds = DEMO_SET_TIMES[ref] || null;
-      if (ref === 's:pull-up') {
-        reps = DEMO_REPS_LADDER[Math.min(occ, DEMO_REPS_LADDER.length - 1)];
-      } else if (ref === 's:plank') {
-        seconds = DEMO_PLANK_LADDER[Math.min(occ, DEMO_PLANK_LADDER.length - 1)];
-      } else {
-        const step = DEMO_LADDERS[ref][Math.min(occ, DEMO_LADDERS[ref].length - 1)];
-        weight = step[0]; reps = step[1];
-      }
+    const refs = ['s:running', DEMO_STATION_REFS[(2 * s) % 8], DEMO_STATION_REFS[(2 * s + 1) % 8]];
+    let k = 0;
+    for (const ref of refs) {
+      const step = DEMO_LADDERS[ref][Math.min(occ[ref] || 0, DEMO_LADDERS[ref].length - 1)];
+      occ[ref] = (occ[ref] || 0) + 1;
+      const weight = step[0], reps = step[1], seconds = step[2];
       // Spread a session's sets a couple of minutes apart, alternating
       // morning, midday and evening slots. Today's session sits in the
       // last few minutes before req.now, so anything logged now lands on
       // top of it.
       const minutes = dayBack === 0
         ? Math.max(0, now.getHours() * 60 + now.getMinutes() - 20 + k * 2)
-        : DEMO_TIMES_OF_DAY[occ % 3] + k * 2;
+        : DEMO_TIMES_OF_DAY[(occ[ref] - 1) % 3] + k * 2;
       const logged = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayBack,
         Math.floor(minutes / 60), minutes % 60);
       n += 1;
+      k += 1;
       rows.push({ key: DEMO_GEN + '-' + n, ref, weight, reps, seconds, logged });
     }
   }

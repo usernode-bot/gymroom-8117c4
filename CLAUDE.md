@@ -95,20 +95,23 @@ tables you've marked private), etc.
 
 ## About Gymroom
 
-Log your workouts and watch your progress grow. One screen: pick an
-exercise (starter list or your own), log a set with weight, reps and time,
-and see your best set each week for the exercise you choose alongside the
-full history of every set. A best set is the heaviest weight, more reps
-winning a tie; without weight, the most reps; with neither, the longest
-time. Weeks start on Monday.
+A Hyrox training log. One screen: pick a station (Running plus the eight
+Hyrox stations in race order — the run before each station is logged under
+Running), log a set with weight, reps and time, and see your best set each
+week for the station you choose alongside the full history of every set. A
+best set is the heaviest weight, more reps winning a tie; with neither, the
+fastest time — shorter is better. Weeks start on Monday.
 
 ## App-specific conventions
 
 - Both tables (`exercises`, `sets`) are `staging:private` — they hold only
-  per-user workout data. Exercises are referenced from sets as
-  `s:<starter slug>` or `c:<exercises.id>`; removing an own exercise
-  deletes its sets. Rows created while a `?demo=1` request is in flight
-  carry `is_demo = true` and are filtered out of every response without it.
+  per-user workout data. The Hyrox stations are a fixed, append-only list
+  of `s:` refs in `server.js` (mirrored in `public/index.html`); never
+  rename or remove a slug, since sets reference it. The `exercises` table
+  is kept but no longer read or written; sets logged against old `c:` or
+  starter refs stay saved but are hidden from every response. Rows created
+  while a `?demo=1` request is in flight carry `is_demo = true` and are
+  filtered out of every response without it.
 - Weight in kilograms only (0–1000, steps of 0.25); time per set typed as
   m:ss and stored as seconds (1–86400); reps 1–1000. A set stores at least
   one of the three.
@@ -123,11 +126,14 @@ time. Weeks start on Monday.
   ink 245 240 234, muted 176 166 156, line 64 57 50, orange 251 146 60
   with 43 17 4 text on it, plate 232 225 216 (pale plates read on a dark
   ground), bar 120 112 104. Follows the viewer's Homeroom theme.
-- **Signature element:** the loaded barbell — a best weight drawn as real
-  plates on a 20 kg bar, 25 kg plates in the action orange (the red of
-  competition 25s), smaller ones in iron black, with a line saying what
-  is on the bar ("25 + 15 + 1.25 kg a side"). A best set under 20 kg or
-  without weight shows the empty bar and says so.
+- **Signature element:** the loaded barbell, drawn for the weighted
+  stations only (sled push, sled pull, farmers carry, sandbag lunges, wall
+  balls) — a best weight drawn as real plates on a 20 kg bar, 25 kg plates
+  in the action orange (the red of competition 25s), smaller ones in iron
+  black, with a line saying what is on the bar ("25 + 15 + 1.25 kg a
+  side"). A best set under 20 kg or without weight shows the empty bar and
+  says so. Running, SkiErg, Rowing and Burpee broad jumps show the best
+  set with no bar.
 - **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`;
   the system's rounded face (`ui-rounded`), numbers in semibold (`.num`).
 - The screen's one job is logging the next set quickly: Log set is the
