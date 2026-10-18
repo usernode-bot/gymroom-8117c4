@@ -99,8 +99,10 @@ A Hyrox training log. One screen: pick a station (Running plus the eight
 Hyrox stations in race order — the run before each station is logged under
 Running), log a set with weight, reps and time, and see your best set each
 week for the station you choose alongside the full history of every set. A
-best set is the heaviest weight, more reps winning a tie; with neither, the
-fastest time — shorter is better. Weeks start on Monday.
+best set is the fastest time — Hyrox is a race — ties going to more reps,
+then heavier weight; a timed set always beats an untimed one, and when no
+set of a station has a time the best is the heaviest weight, then more
+reps. Weeks start on Monday.
 
 ## App-specific conventions
 
@@ -128,12 +130,12 @@ fastest time — shorter is better. Weeks start on Monday.
   ground), bar 120 112 104. Follows the viewer's Homeroom theme.
 - **Signature element:** the loaded barbell, drawn for the weighted
   stations only (sled push, sled pull, farmers carry, sandbag lunges, wall
-  balls) — a best weight drawn as real plates on a 20 kg bar, 25 kg plates
-  in the action orange (the red of competition 25s), smaller ones in iron
-  black, with a line saying what is on the bar ("25 + 15 + 1.25 kg a
-  side"). A best set under 20 kg or without weight shows the empty bar and
-  says so. Running, SkiErg, Rowing and Burpee broad jumps show the best
-  set with no bar.
+  balls) — the best set's weight drawn as real plates on a 20 kg bar,
+  25 kg plates in the action orange (the red of competition 25s), smaller
+  ones in iron black, with a line saying what the bar carries for that
+  time ("With 130 kg: 25 + 25 + 5 kg a side, 20 kg bar"). A best set
+  under 20 kg or without weight shows the empty bar and says so. Running,
+  SkiErg, Rowing and Burpee broad jumps show the best set with no bar.
 - **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`;
   the system's rounded face (`ui-rounded`), numbers in semibold (`.num`).
 - The screen's one job is logging the next set quickly: Log set is the

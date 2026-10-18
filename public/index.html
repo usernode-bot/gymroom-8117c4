@@ -251,8 +251,17 @@
       var m = Math.floor(sec / 60), r = sec % 60;
       return m + ':' + (r < 10 ? '0' : '') + r;
     }
+    // Time leads every timed set line; weight is the extra after it. A set
+    // logged without a time reads as it did before.
     function fmtSet(s) {
+      var timed = s.seconds != null && s.seconds > 0;
       var w = s.weight_kg != null ? parseFloat(s.weight_kg) : null;
+      if (timed) {
+        var parts = [fmtTime(s.seconds)];
+        if (s.reps != null) parts.push(s.reps === 1 ? '1 rep' : s.reps + ' reps');
+        if (w != null && w > 0) parts.push(fmtWeight(w) + ' kg');
+        return parts.join(', ');
+      }
       if (w != null && w > 0) return fmtWeight(w) + ' kg' + (s.reps != null ? ' × ' + s.reps : '');
       if (s.reps != null) return 'Body × ' + s.reps;
       if (s.seconds != null) return fmtTime(s.seconds);
@@ -273,10 +282,19 @@
       return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
     }
 
-    // A best set: heaviest weight, more reps winning a tie; without weight,
-    // the most reps; then the shorter time — for timed work, faster is
-    // better, and a set with a time beats one without when the rest ties.
+    // A best set: the fastest time — Hyrox is a race — with more reps
+    // winning a tie, then the heavier weight. A set with a time always
+    // beats one without. Sets logged without a time still rank among
+    // themselves by heaviest weight, then most reps.
     function beats(a, b) {
+      var at = a.seconds != null && a.seconds > 0;
+      var bt = b.seconds != null && b.seconds > 0;
+      if (at !== bt) return at;
+      if (at) {
+        if (a.seconds !== b.seconds) return a.seconds < b.seconds;
+        if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
+        return (parseFloat(a.weight_kg) || 0) > (parseFloat(b.weight_kg) || 0);
+      }
       var aw = a.weight_kg != null && parseFloat(a.weight_kg) > 0;
       var bw = b.weight_kg != null && parseFloat(b.weight_kg) > 0;
       if (aw && bw && parseFloat(a.weight_kg) !== parseFloat(b.weight_kg)) {
@@ -284,10 +302,6 @@
       }
       if (aw !== bw) return aw;
       if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
-      var at = a.seconds != null && a.seconds > 0;
-      var bt = b.seconds != null && b.seconds > 0;
-      if (at !== bt) return at;
-      if (at && a.seconds !== b.seconds) return a.seconds < b.seconds;
       return false;
     }
 
@@ -419,7 +433,9 @@
       var day = dayLabel(new Date(best.logged_at), nowDate());
       if (day === 'Today') day = 'today';
       if (day === 'Yesterday') day = 'yesterday';
-      $('best-sub').textContent = 'Best set ever, logged ' + day;
+      $('best-sub').textContent =
+        (best.seconds != null && best.seconds > 0 ? 'Fastest set ever' : 'Best set ever') +
+        ', logged ' + day;
       var isNew = sameLocalDay(best.logged_at, nowDate());
       if (isNew) show($('best-badge')); else hide($('best-badge'));
       // The loaded barbell — the best weight as real plates on a 20 kg
@@ -430,7 +446,7 @@
         show($('bar-wrap'));
         var note;
         if (w == null || w <= 0) {
-          note = 'Bodyweight: the empty bar';
+          note = 'No weight logged: the empty bar';
         } else if (w < 20) {
           note = 'Under 20 kg: the empty bar';
         } else {
@@ -446,10 +462,12 @@
             }
           });
           if (parts.length) {
-            note = 'On the bar: ' + parts.join(' + ') + ' kg a side' +
+            // Weight now reads as what came with the fastest time, so the
+            // note says which weight the bar is loaded for.
+            note = 'With ' + fmtWeight(w) + ' kg: ' + parts.join(' + ') + ' kg a side' +
               (left > 0 ? ' plus ' + fmtWeight(left) + ' kg' : '') + ', 20 kg bar';
           } else {
-            note = 'On the bar: the bare 20 kg bar';
+            note = 'With ' + fmtWeight(w) + ' kg: the bare 20 kg bar';
           }
         }
         $('bar-note').textContent = note;
@@ -459,27 +477,51 @@
       renderWeeks();
     }
 
+    // Times are compared first — a race, so faster is the win. Reps and
+    // weight only decide between weeks with the same time, or between
+    // weeks whose bests have no time.
     function compareText(best, prevBest) {
       if (!prevBest) return { cls: 'small', text: 'First week' };
-      var bw = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
-      var pw = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
-      if (bw && pw) {
-        var d = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
-        if (d > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d) + ' kg' };
-        if (d < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d) + ' kg' };
-      }
-      if ((best.reps || 0) !== (prevBest.reps || 0)) {
-        var rd = (best.reps || 0) - (prevBest.reps || 0);
-        return rd > 0
-          ? { cls: 'pr', text: 'Up ' + rd + (rd === 1 ? ' rep' : ' reps') }
-          : { cls: 'small', text: 'Down ' + (-rd) + (rd === -1 ? ' rep' : ' reps') };
-      }
-      if (best.reps == null && prevBest.reps == null && best.seconds != null && prevBest.seconds != null && best.seconds !== prevBest.seconds) {
-        // Timed work: shorter is better, so a falling time is the win.
+      var bt = best.seconds != null && best.seconds > 0;
+      var pt = prevBest.seconds != null && prevBest.seconds > 0;
+      if (bt && pt && best.seconds !== prevBest.seconds) {
         var sd = best.seconds - prevBest.seconds;
+        // Shorter is better, so a falling time is the win.
         return sd < 0
           ? { cls: 'pr', text: 'Faster by ' + fmtTime(-sd) }
           : { cls: 'small', text: 'Slower by ' + fmtTime(sd) };
+      }
+      if (bt && !pt) return { cls: 'small', text: 'First timed week' };
+      if (pt && !bt) return { cls: 'small', text: 'No time this week' };
+      if (bt && pt) {
+        if ((best.reps || 0) !== (prevBest.reps || 0)) {
+          var rd = (best.reps || 0) - (prevBest.reps || 0);
+          return rd > 0
+            ? { cls: 'pr', text: 'Up ' + rd + (rd === 1 ? ' rep' : ' reps') }
+            : { cls: 'small', text: 'Down ' + (-rd) + (rd === -1 ? ' rep' : ' reps') };
+        }
+        var bw = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
+        var pw = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
+        if (bw && pw) {
+          var d = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
+          if (d > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d) + ' kg' };
+          if (d < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d) + ' kg' };
+        }
+        return { cls: 'small', text: 'Same as before' };
+      }
+      // Neither timed: the current weight-then-reps branches.
+      var bw2 = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
+      var pw2 = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
+      if (bw2 && pw2) {
+        var d2 = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
+        if (d2 > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d2) + ' kg' };
+        if (d2 < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d2) + ' kg' };
+      }
+      if ((best.reps || 0) !== (prevBest.reps || 0)) {
+        var rd2 = (best.reps || 0) - (prevBest.reps || 0);
+        return rd2 > 0
+          ? { cls: 'pr', text: 'Up ' + rd2 + (rd2 === 1 ? ' rep' : ' reps') }
+          : { cls: 'small', text: 'Down ' + (-rd2) + (rd2 === -1 ? ' rep' : ' reps') };
       }
       return { cls: 'small', text: 'Same as before' };
     }
@@ -580,7 +622,9 @@
           var row = el('div', 'list-row');
           var grow = el('div', 'grow');
           grow.appendChild(el('div', 'b', exerciseName(s.exercise_ref)));
-          grow.appendChild(el('div', 'small', 'Set ' + s._num + (s.seconds != null ? ', ' + fmtTime(s.seconds) : '')));
+          // The time now leads fmtSet(s) on the right, so the subline is
+          // just the set's number that day.
+          grow.appendChild(el('div', 'small', 'Set ' + s._num));
           row.appendChild(grow);
           if (String(s.id) === String(confirmDeleteId)) {
             row.appendChild(el('span', 'small del-q', 'Delete this set?'));

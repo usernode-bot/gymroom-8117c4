@@ -14,8 +14,10 @@ for each week alongside your full history.
 - **See your progress.** Per station: your best set ever — drawn as the
   plates it takes to load a 20 kg bar for the weighted stations — and the
   best set of every week you trained it, each compared with the week
-  before. Heavier wins, and for timed work faster wins: a time-only best
-  is the fastest set, and the weeks read "Faster by" or "Slower by".
+  before. Time is what counts, Hyrox being a race: the fastest set wins,
+  with reps then weight breaking a tie, and weight is the extra on the
+  line. Sets logged without a time rank by heaviest weight, then reps, and
+  the weeks read "Faster by" or "Slower by".
 - **Look back.** Every set in one history, grouped by day, with delete.
 
 Sets logged against the old general exercise list are kept in the
