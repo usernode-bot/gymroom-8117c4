@@ -8,9 +8,34 @@
     "preset": "you_or_the_group"
   },
   "tests": [
-    { "name": "Log form renders", "path": "/", "expectSelector": "#log-form button.btn-primary" },
-    { "name": "Station list renders", "path": "/", "expectSelector": "#exercise-select option[value=\"s:wall-balls\"]" },
-    { "name": "Empty history", "path": "/", "expectText": "No sets yet" },
-    { "name": "Populated demo", "path": "/?demo=1", "expectText": "Best set each week", "id": "demo", "visual": true, "impact": ["public/**"] }
-  ]
+    {
+      "name": "Log form renders",
+      "path": "/",
+      "expectSelector": "#log-form button.btn-primary"
+    },
+    {
+      "name": "Station list renders",
+      "path": "/",
+      "expectSelector": "#exercise-select option[value=\"s:wall-balls\"]"
+    },
+    {
+      "name": "Empty history",
+      "path": "/",
+      "expectText": "No sets yet"
+    },
+    {
+      "name": "Populated demo",
+      "path": "/?demo=1",
+      "expectText": "Best set each week",
+      "id": "demo",
+      "visual": true,
+      "impact": [
+        "public/**"
+      ]
+    }
+  ],
+  "visibility": {
+    "build": "public",
+    "view": "public"
+  }
 }
