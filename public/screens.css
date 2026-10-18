@@ -43,9 +43,9 @@
 
 .field {display:flex;align-items:center;min-height:44px;width:100%;border:1px solid rgb(var(--line));border-radius:8px;background:rgb(var(--surface));padding:8px 12px;font-size:16px;color:rgb(var(--fg));justify-content:space-between}
 
-.three {display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.time-field {margin-top:12px}
 
-.three .small {margin-bottom:4px}
+.time-field .small {margin-bottom:4px}
 
 .num {font-weight:600;font-size:20px;line-height:28px}
 
@@ -59,22 +59,6 @@
 .chip {min-height:44px;padding:10px 14px;border-radius:22px;background:rgb(var(--raised));font-size:14px;line-height:24px;white-space:nowrap;display:flex;align-items:center}
 
 .chip.on {background:rgb(var(--fg));color:rgb(var(--ground))}
-
-.bar {display:flex;align-items:center;height:32px;margin:14px 0 6px}
-
-.end {width:12px;height:10px;background:rgb(var(--bar));border-radius:2px}
-
-.shaft {height:6px;width:40px;background:rgb(var(--bar))}
-
-.collar {width:6px;height:14px;background:rgb(var(--bar));border-radius:2px;margin-right:2px}
-
-.plates {display:flex;align-items:center;flex:none}
-
-.p {border-radius:3px;margin-right:2px;background:rgb(var(--plate))}
-
-.p.o {background:rgb(var(--accent))}
-
-.rest {flex:1;height:8px;background:rgb(var(--bar));border-radius:0 4px 4px 0}
 
 .row {display:flex;justify-content:space-between;align-items:center;gap:12px}
 

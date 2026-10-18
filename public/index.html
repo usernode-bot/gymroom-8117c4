@@ -120,10 +120,8 @@
     <div class="sec"><div class="card" id="log-form">
     <div class="small" style="margin-top:12px"><label for="exercise-select">Station</label></div>
     <div class="field sel" style="margin-top:4px"><select id="exercise-select" aria-label="Station"></select><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></div>
-    <div class="three">
-    <div><div class="small"><label for="weight-input">Weight, kg</label></div><input class="field num" id="weight-input" inputmode="decimal" placeholder="e.g. 102.5"></div>
-    <div><div class="small"><label for="reps-input">Reps</label></div><input class="field num" id="reps-input" inputmode="numeric" placeholder="e.g. 5"></div>
-    <div><div class="small"><label for="time-input">Time, m:ss</label></div><input class="field num" id="time-input" inputmode="numeric" placeholder="e.g. 2:10"></div>
+    <div class="time-field">
+    <div class="small"><label for="time-input">Time, m:ss</label></div><input class="field num" id="time-input" inputmode="numeric" placeholder="e.g. 2:10">
     </div>
     <button class="btn-primary" id="log-btn" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Log set</button>
     <p class="save-error" id="save-error" hidden></p>
@@ -135,8 +133,6 @@
       <div class="card">
         <div class="skeleton h-6 w-36"></div>
         <div class="skeleton h-3 w-44 mt-1"></div>
-        <div class="skeleton h-8 w-full mt-4"></div>
-        <div class="skeleton h-3 w-48 mt-2"></div>
       </div>
       <div class="section-label" style="margin-top:16px">Best set each week</div>
       <div class="list"><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div><div class="list-row wk"><div class="grow"><div class="skeleton h-4 w-24"></div><div class="skeleton h-3 w-16 mt-1"></div></div><div class="r"><div class="skeleton h-4 w-20"></div><div class="skeleton h-3 w-14 mt-1"></div></div></div></div>
@@ -149,8 +145,6 @@
     <div class="card">
     <div id="card-main">
     <div class="row"><div><div class="num" id="best-line"></div><div class="small" id="best-sub"></div></div><div class="pr" id="best-badge" hidden>New best</div></div>
-    <div id="bar-wrap"><div class="bar"><div class="end"></div><div class="shaft"></div><div class="collar"></div><span id="plates" class="plates"></span><div class="rest"></div></div>
-    <div class="small" id="bar-note"></div></div>
     </div>
     <div class="state-empty" id="station-empty" hidden><p id="station-empty-text"></p></div>
     </div>
@@ -192,15 +186,15 @@
     // same fixed list server.js serves, so the Station select is filled
     // while loading and when loading fails.
     var STATIONS = [
-      { ref: 's:running', name: 'Running', order: 0, weighted: false },
-      { ref: 's:ski-erg', name: 'SkiErg', order: 1, weighted: false },
-      { ref: 's:sled-push', name: 'Sled push', order: 2, weighted: true },
-      { ref: 's:sled-pull', name: 'Sled pull', order: 3, weighted: true },
-      { ref: 's:burpee-broad-jumps', name: 'Burpee broad jumps', order: 4, weighted: false },
-      { ref: 's:rowing', name: 'Rowing', order: 5, weighted: false },
-      { ref: 's:farmers-carry', name: 'Farmers carry', order: 6, weighted: true },
-      { ref: 's:sandbag-lunges', name: 'Sandbag lunges', order: 7, weighted: true },
-      { ref: 's:wall-balls', name: 'Wall balls', order: 8, weighted: true },
+      { ref: 's:running', name: 'Running', order: 0 },
+      { ref: 's:ski-erg', name: 'SkiErg', order: 1 },
+      { ref: 's:sled-push', name: 'Sled push', order: 2 },
+      { ref: 's:sled-pull', name: 'Sled pull', order: 3 },
+      { ref: 's:burpee-broad-jumps', name: 'Burpee broad jumps', order: 4 },
+      { ref: 's:rowing', name: 'Rowing', order: 5 },
+      { ref: 's:farmers-carry', name: 'Farmers carry', order: 6 },
+      { ref: 's:sandbag-lunges', name: 'Sandbag lunges', order: 7 },
+      { ref: 's:wall-balls', name: 'Wall balls', order: 8 },
     ];
 
     var stations = STATIONS;
@@ -245,27 +239,14 @@
     }
 
     // ── Formatting ────────────────────────────────────────────────────────
-    function fmtWeight(n) { return String(Math.round(parseFloat(n) * 100) / 100); }
     function fmtTime(sec) {
       sec = Math.round(sec);
       var m = Math.floor(sec / 60), r = sec % 60;
       return m + ':' + (r < 10 ? '0' : '') + r;
     }
-    // Time leads every timed set line; weight is the extra after it. A set
-    // logged without a time reads as it did before.
+    // A set reads as its time — Hyrox is a race.
     function fmtSet(s) {
-      var timed = s.seconds != null && s.seconds > 0;
-      var w = s.weight_kg != null ? parseFloat(s.weight_kg) : null;
-      if (timed) {
-        var parts = [fmtTime(s.seconds)];
-        if (s.reps != null) parts.push(s.reps === 1 ? '1 rep' : s.reps + ' reps');
-        if (w != null && w > 0) parts.push(fmtWeight(w) + ' kg');
-        return parts.join(', ');
-      }
-      if (w != null && w > 0) return fmtWeight(w) + ' kg' + (s.reps != null ? ' × ' + s.reps : '');
-      if (s.reps != null) return 'Body × ' + s.reps;
-      if (s.seconds != null) return fmtTime(s.seconds);
-      return '—';
+      return fmtTime(s.seconds);
     }
     function fmtDate(d) {
       var out = d.getDate() + ' ' + MONTHS[d.getMonth()];
@@ -282,27 +263,10 @@
       return d.getFullYear() === ref.getFullYear() && d.getMonth() === ref.getMonth() && d.getDate() === ref.getDate();
     }
 
-    // A best set: the fastest time — Hyrox is a race — with more reps
-    // winning a tie, then the heavier weight. A set with a time always
-    // beats one without. Sets logged without a time still rank among
-    // themselves by heaviest weight, then most reps.
+    // A best set: the fastest time — Hyrox is a race. Strictly faster wins,
+    // so two sets with the same time keep the earlier one as the best.
     function beats(a, b) {
-      var at = a.seconds != null && a.seconds > 0;
-      var bt = b.seconds != null && b.seconds > 0;
-      if (at !== bt) return at;
-      if (at) {
-        if (a.seconds !== b.seconds) return a.seconds < b.seconds;
-        if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
-        return (parseFloat(a.weight_kg) || 0) > (parseFloat(b.weight_kg) || 0);
-      }
-      var aw = a.weight_kg != null && parseFloat(a.weight_kg) > 0;
-      var bw = b.weight_kg != null && parseFloat(b.weight_kg) > 0;
-      if (aw && bw && parseFloat(a.weight_kg) !== parseFloat(b.weight_kg)) {
-        return parseFloat(a.weight_kg) > parseFloat(b.weight_kg);
-      }
-      if (aw !== bw) return aw;
-      if ((a.reps || 0) !== (b.reps || 0)) return (a.reps || 0) > (b.reps || 0);
-      return false;
+      return a.seconds < b.seconds;
     }
 
     function setsFor(ref) {
@@ -361,9 +325,6 @@
       for (var i = 0; i < sets.length; i++) {
         if (sets[i].exercise_ref === ref) { last = sets[i]; break; } // sets are newest first
       }
-      var w = last && last.weight_kg != null ? parseFloat(last.weight_kg) : null;
-      $('weight-input').value = w != null && w > 0 ? fmtWeight(w) : '';
-      $('reps-input').value = last && last.reps != null ? String(last.reps) : '';
       $('time-input').value = last && last.seconds != null && last.seconds > 0 ? fmtTime(last.seconds) : '';
     }
 
@@ -404,10 +365,6 @@
       });
     }
 
-    // Plate widths and heights, from the drawn barbell.
-    var PLATE_SIZES = { '25': [9, 32], '20': [8, 30], '15': [7, 26], '10': [6, 20], '5': [4, 14], '2.5': [3, 10], '1.25': [2, 8] };
-    var PLATE_ORDER = [25, 20, 15, 10, 5, 2.5, 1.25];
-
     function renderCard() {
       var st = stationByRef(progressRef);
       var list = setsFor(progressRef);
@@ -426,102 +383,27 @@
       show($('weeks-label'));
       show($('weeks'));
       var best = bestOf(list);
-      var w = best.weight_kg != null ? parseFloat(best.weight_kg) : null;
       $('best-line').textContent = fmtSet(best);
       // Inside a sentence the relative day is lowercase; weekdays and dates
       // stay as the History groups spell them.
       var day = dayLabel(new Date(best.logged_at), nowDate());
       if (day === 'Today') day = 'today';
       if (day === 'Yesterday') day = 'yesterday';
-      $('best-sub').textContent =
-        (best.seconds != null && best.seconds > 0 ? 'Fastest set ever' : 'Best set ever') +
-        ', logged ' + day;
+      $('best-sub').textContent = 'Fastest set ever, logged ' + day;
       var isNew = sameLocalDay(best.logged_at, nowDate());
       if (isNew) show($('best-badge')); else hide($('best-badge'));
-      // The loaded barbell — the best weight as real plates on a 20 kg
-      // bar — is drawn for the weighted stations only.
-      var holder = $('plates');
-      holder.innerHTML = '';
-      if (st && st.weighted) {
-        show($('bar-wrap'));
-        var note;
-        if (w == null || w <= 0) {
-          note = 'No weight logged: the empty bar';
-        } else if (w < 20) {
-          note = 'Under 20 kg: the empty bar';
-        } else {
-          var perSide = (w - 20) / 2, left = perSide, parts = [];
-          PLATE_ORDER.forEach(function (p) {
-            while (left >= p - 1e-9) {
-              left = Math.round((left - p) * 100) / 100;
-              parts.push(p);
-              var d = el('div', p === 25 ? 'p o' : 'p');
-              d.style.width = PLATE_SIZES[String(p)][0] + 'px';
-              d.style.height = PLATE_SIZES[String(p)][1] + 'px';
-              holder.appendChild(d);
-            }
-          });
-          if (parts.length) {
-            // Weight now reads as what came with the fastest time, so the
-            // note says which weight the bar is loaded for.
-            note = 'With ' + fmtWeight(w) + ' kg: ' + parts.join(' + ') + ' kg a side' +
-              (left > 0 ? ' plus ' + fmtWeight(left) + ' kg' : '') + ', 20 kg bar';
-          } else {
-            note = 'With ' + fmtWeight(w) + ' kg: the bare 20 kg bar';
-          }
-        }
-        $('bar-note').textContent = note;
-      } else {
-        hide($('bar-wrap'));
-      }
       renderWeeks();
     }
 
-    // Times are compared first — a race, so faster is the win. Reps and
-    // weight only decide between weeks with the same time, or between
-    // weeks whose bests have no time.
+    // Weeks are compared by time — a race, so faster is the win.
     function compareText(best, prevBest) {
       if (!prevBest) return { cls: 'small', text: 'First week' };
-      var bt = best.seconds != null && best.seconds > 0;
-      var pt = prevBest.seconds != null && prevBest.seconds > 0;
-      if (bt && pt && best.seconds !== prevBest.seconds) {
+      if (best.seconds !== prevBest.seconds) {
         var sd = best.seconds - prevBest.seconds;
         // Shorter is better, so a falling time is the win.
         return sd < 0
           ? { cls: 'pr', text: 'Faster by ' + fmtTime(-sd) }
           : { cls: 'small', text: 'Slower by ' + fmtTime(sd) };
-      }
-      if (bt && !pt) return { cls: 'small', text: 'First timed week' };
-      if (pt && !bt) return { cls: 'small', text: 'No time this week' };
-      if (bt && pt) {
-        if ((best.reps || 0) !== (prevBest.reps || 0)) {
-          var rd = (best.reps || 0) - (prevBest.reps || 0);
-          return rd > 0
-            ? { cls: 'pr', text: 'Up ' + rd + (rd === 1 ? ' rep' : ' reps') }
-            : { cls: 'small', text: 'Down ' + (-rd) + (rd === -1 ? ' rep' : ' reps') };
-        }
-        var bw = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
-        var pw = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
-        if (bw && pw) {
-          var d = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
-          if (d > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d) + ' kg' };
-          if (d < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d) + ' kg' };
-        }
-        return { cls: 'small', text: 'Same as before' };
-      }
-      // Neither timed: the current weight-then-reps branches.
-      var bw2 = best.weight_kg != null && parseFloat(best.weight_kg) > 0;
-      var pw2 = prevBest.weight_kg != null && parseFloat(prevBest.weight_kg) > 0;
-      if (bw2 && pw2) {
-        var d2 = parseFloat(best.weight_kg) - parseFloat(prevBest.weight_kg);
-        if (d2 > 0) return { cls: 'pr', text: 'Up ' + fmtWeight(d2) + ' kg' };
-        if (d2 < 0) return { cls: 'small', text: 'Down ' + fmtWeight(-d2) + ' kg' };
-      }
-      if ((best.reps || 0) !== (prevBest.reps || 0)) {
-        var rd2 = (best.reps || 0) - (prevBest.reps || 0);
-        return rd2 > 0
-          ? { cls: 'pr', text: 'Up ' + rd2 + (rd2 === 1 ? ' rep' : ' reps') }
-          : { cls: 'small', text: 'Down ' + (-rd2) + (rd2 === -1 ? ' rep' : ' reps') };
       }
       return { cls: 'small', text: 'Same as before' };
     }
@@ -665,20 +547,6 @@
       show(p);
     }
 
-    function parseWeight(v) {
-      var t = String(v).trim().replace(',', '.');
-      if (!t) return { value: null };
-      var n = Number(t);
-      if (!isFinite(n)) return { error: 'Enter weight in kilograms, like 102.5.' };
-      return { value: n };
-    }
-    function parseReps(v) {
-      var t = String(v).trim();
-      if (!t) return { value: null };
-      var n = Number(t);
-      if (!isFinite(n) || Math.round(n) !== n) return { error: 'Enter reps as a whole number.' };
-      return { value: n };
-    }
     function parseTime(v) {
       var t = String(v).trim();
       if (!t) return { value: null };
@@ -691,21 +559,15 @@
     function logSet() {
       if (saving) return;
       hide($('save-error'));
-      var w = parseWeight($('weight-input').value);
-      var r = parseReps($('reps-input').value);
       var t = parseTime($('time-input').value);
-      if (w.error) return showSaveError(w.error);
-      if (r.error) return showSaveError(r.error);
       if (t.error) return showSaveError(t.error);
-      if (w.value == null && r.value == null && t.value == null) {
-        return showSaveError('Enter at least one of weight, reps or time.');
+      if (t.value == null) {
+        return showSaveError('Enter a time for the set, as m:ss.');
       }
       saving = true;
       $('log-btn').disabled = true;
       api('POST', 'sets', {
         exercise_ref: selectedRef,
-        weight_kg: w.value,
-        reps: r.value,
         seconds: t.value,
       }).then(function (res) {
         saving = false;
