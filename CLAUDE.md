@@ -97,12 +97,11 @@ tables you've marked private), etc.
 
 A Hyrox training log. One screen: pick a station (Running plus the eight
 Hyrox stations in race order — the run before each station is logged under
-Running), log a set with weight, reps and time, and see your best set each
-week for the station you choose alongside the full history of every set. A
-best set is the fastest time — Hyrox is a race — ties going to more reps,
-then heavier weight; a timed set always beats an untimed one, and when no
-set of a station has a time the best is the heaviest weight, then more
-reps. Weeks start on Monday.
+Running), log a set as a time, and see your best set each week for the
+station you choose alongside the full history of every set. A best set is
+the fastest time — Hyrox is a race — a tie keeping the earlier set. Sets
+logged without a time (older, weight- or reps-only ones) are hidden from
+every response. Weeks start on Monday.
 
 ## App-specific conventions
 
@@ -114,28 +113,25 @@ reps. Weeks start on Monday.
   starter refs stay saved but are hidden from every response. Rows created
   while a `?demo=1` request is in flight carry `is_demo = true` and are
   filtered out of every response without it.
-- Weight in kilograms only (0–1000, steps of 0.25); time per set typed as
-  m:ss and stored as seconds (1–86400); reps 1–1000. A set stores at least
-  one of the three.
+- Time per set is the only thing logged, typed as m:ss (or bare seconds)
+  and stored as seconds (1–86400), and it is required. `weight_kg` and
+  `reps` stay in the table but are no longer written or read; old values
+  are kept, just hidden, and untimed rows are never returned.
 
 ## Design
 
 - **Palette:** warm gym neutrals with one deep orange action colour.
   Light: ground 250 247 243, surface 255 255 255, raised 243 238 232,
   ink 33 27 22, muted 96 87 78, line 226 219 210, orange 194 65 12 with
-  white text on it, plate 33 27 22 (iron black), bar 168 160 152.
-  Dark, same hues: ground 24 20 17, surface 34 29 25, raised 46 40 35,
-  ink 245 240 234, muted 176 166 156, line 64 57 50, orange 251 146 60
-  with 43 17 4 text on it, plate 232 225 216 (pale plates read on a dark
-  ground), bar 120 112 104. Follows the viewer's Homeroom theme.
-- **Signature element:** the loaded barbell, drawn for the weighted
-  stations only (sled push, sled pull, farmers carry, sandbag lunges, wall
-  balls) — the best set's weight drawn as real plates on a 20 kg bar,
-  25 kg plates in the action orange (the red of competition 25s), smaller
-  ones in iron black, with a line saying what the bar carries for that
-  time ("With 130 kg: 25 + 25 + 5 kg a side, 20 kg bar"). A best set
-  under 20 kg or without weight shows the empty bar and says so. Running,
-  SkiErg, Rowing and Burpee broad jumps show the best set with no bar.
+  white text on it. Dark, same hues: ground 24 20 17, surface 34 29 25,
+  raised 46 40 35, ink 245 240 234, muted 176 166 156, line 64 57 50,
+  orange 251 146 60 with 43 17 4 text on it. Follows the viewer's Homeroom
+  theme.
+- **Signature element:** the race time itself — every set reads as its
+  time ("1:05"), and the station's fastest time leads the Progress card
+  ("Fastest set ever, logged today"). Weeks are compared by time
+  ("Faster by", "Slower by", "Same as before", "First week"); the orange
+  is reserved for Log set and for wins ("New best", "Faster by").
 - **Type scale:** `text-title`, `text-heading`, `text-body`, `text-small`;
   the system's rounded face (`ui-rounded`), numbers in semibold (`.num`).
 - The screen's one job is logging the next set quickly: Log set is the

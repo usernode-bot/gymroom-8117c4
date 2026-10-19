@@ -158,15 +158,15 @@ app.get('/health', (_req, res) => {
 // never rename or remove one. The exercises table stays for data already in
 // it but is no longer read or written.
 const STATIONS = [
-  { slug: 'running', name: 'Running', order: 0, weighted: false },
-  { slug: 'ski-erg', name: 'SkiErg', order: 1, weighted: false },
-  { slug: 'sled-push', name: 'Sled push', order: 2, weighted: true },
-  { slug: 'sled-pull', name: 'Sled pull', order: 3, weighted: true },
-  { slug: 'burpee-broad-jumps', name: 'Burpee broad jumps', order: 4, weighted: false },
-  { slug: 'rowing', name: 'Rowing', order: 5, weighted: false },
-  { slug: 'farmers-carry', name: 'Farmers carry', order: 6, weighted: true },
-  { slug: 'sandbag-lunges', name: 'Sandbag lunges', order: 7, weighted: true },
-  { slug: 'wall-balls', name: 'Wall balls', order: 8, weighted: true },
+  { slug: 'running', name: 'Running', order: 0 },
+  { slug: 'ski-erg', name: 'SkiErg', order: 1 },
+  { slug: 'sled-push', name: 'Sled push', order: 2 },
+  { slug: 'sled-pull', name: 'Sled pull', order: 3 },
+  { slug: 'burpee-broad-jumps', name: 'Burpee broad jumps', order: 4 },
+  { slug: 'rowing', name: 'Rowing', order: 5 },
+  { slug: 'farmers-carry', name: 'Farmers carry', order: 6 },
+  { slug: 'sandbag-lunges', name: 'Sandbag lunges', order: 7 },
+  { slug: 'wall-balls', name: 'Wall balls', order: 8 },
 ];
 const STATION_REFS = STATIONS.map((s) => 's:' + s.slug);
 
@@ -207,7 +207,7 @@ function demoMode(req) {
 app.get('/api/exercises', (_req, res) => {
   res.json({
     stations: STATIONS.map((s) => ({
-      ref: 's:' + s.slug, name: s.name, order: s.order, weighted: s.weighted,
+      ref: 's:' + s.slug, name: s.name, order: s.order,
     })),
   });
 });
@@ -217,12 +217,13 @@ app.get('/api/sets', async (req, res) => {
   const demo = demoMode(req);
   try {
     if (demo && req.user) await seedDemoSets(req.user.id, req.now);
-    // Only station sets are returned. Sets logged against the old starter
-    // list and own exercises stay saved but hidden.
+    // Only station sets with a time are returned. Sets logged against the
+    // old starter list and own exercises stay saved but hidden, and so do
+    // the weight- or reps-only sets logged before this app was a timing log.
     const rows = req.user
       ? await pool.query(
-          'SELECT id, exercise_ref, weight_kg, reps, seconds, logged_at, is_demo FROM sets ' +
-          'WHERE owner_id = $1 AND exercise_ref = ANY($2)' +
+          'SELECT id, exercise_ref, seconds, logged_at, is_demo FROM sets ' +
+          'WHERE owner_id = $1 AND exercise_ref = ANY($2) AND seconds IS NOT NULL' +
           (demo ? '' : ' AND NOT is_demo') +
           ' ORDER BY logged_at DESC, id DESC',
           [req.user.id, STATION_REFS])
@@ -242,23 +243,13 @@ app.post('/api/sets', async (req, res) => {
   try {
     const b = req.body || {};
     const ref = typeof b.exercise_ref === 'string' ? b.exercise_ref : '';
-    const weight = b.weight_kg === undefined || b.weight_kg === null || b.weight_kg === ''
-      ? null : Number(b.weight_kg);
-    const reps = b.reps === undefined || b.reps === null || b.reps === ''
-      ? null : Number(b.reps);
     const seconds = b.seconds === undefined || b.seconds === null || b.seconds === ''
       ? null : Number(b.seconds);
 
-    // At least one of the three, each in its own valid range.
-    const hasAny = weight !== null || reps !== null || seconds !== null;
-    const weightOk = weight === null
-      || (Number.isFinite(weight) && weight >= 0 && weight <= 1000
-          && Math.round(weight * 4) === weight * 4);
-    const repsOk = reps === null || (!isBadInt(reps, 1, 1000) && Number.isInteger(reps));
-    const secondsOk = seconds === null || (!isBadInt(seconds, 1, 86400) && Number.isInteger(seconds));
-    if (!hasAny || !weightOk || !repsOk || !secondsOk) {
-      return res.status(400).json({
-        error: 'Enter at least one of weight, reps or time, each within its range.' });
+    // Time is the only thing a set carries now, and it is required. Any
+    // weight_kg or reps a client still sends are ignored.
+    if (isBadInt(seconds, 1, 86400)) {
+      return res.status(400).json({ error: 'Enter a time for the set, as m:ss.' });
     }
 
     // The ref must be one of the fixed Hyrox stations.
@@ -267,9 +258,9 @@ app.post('/api/sets', async (req, res) => {
     if (!refOk) return res.status(400).json({ error: 'Unknown exercise.' });
 
     const ins = await pool.query(
-      'INSERT INTO sets (owner_id, exercise_ref, weight_kg, reps, seconds, logged_at, is_demo) ' +
-      'VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, exercise_ref, weight_kg, reps, seconds, logged_at, is_demo',
-      [req.user.id, ref, weight, reps, seconds, req.now, demoMode(req)]);
+      'INSERT INTO sets (owner_id, exercise_ref, seconds, logged_at, is_demo) ' +
+      'VALUES ($1, $2, $3, $4, $5) RETURNING id, exercise_ref, seconds, logged_at, is_demo',
+      [req.user.id, ref, seconds, req.now, demoMode(req)]);
     res.status(201).json({ set: ins.rows[0] });
   } catch (err) {
     console.error('POST /api/sets failed: ' + err.message);
@@ -296,32 +287,26 @@ app.delete('/api/sets/:id', async (req, res) => {
 // Six weeks of Hyrox training: every session logs its run plus two
 // stations in race order, so each station trains four times across four
 // weeks and all of them have weekly bests. Runs get faster 5:40 → 5:05 and
-// the sled push climbs to 150 kg, with today's run and sled push both new
+// the sled push 1:10 → 1:05, with today's run and sled push both new
 // bests. Fixed demo_keys and ON CONFLICT DO NOTHING keep a reload from
 // adding anything and keep deletions deleted.
-// Per station, newest first: [weight_kg, reps, seconds], null where unused.
+// Per station, newest first: seconds.
 const DEMO_LADDERS = {
-  's:running': [
-    [null, null, 305], [null, null, 307], [null, null, 309],
-    [null, null, 313], [null, null, 315], [null, null, 317],
-    [null, null, 320], [null, null, 322], [null, null, 324],
-    [null, null, 327], [null, null, 330], [null, null, 333],
-    [null, null, 335], [null, null, 338], [null, null, 340],
-  ],
-  's:ski-erg': [[null, null, 265], [null, null, 270], [null, null, 275], [null, null, 290]],
-  's:sled-push': [[150, null, 65], [140, null, 66], [130, null, 68], [110, null, 70]],
-  's:sled-pull': [[105, null, 68], [95, null, 70], [90, null, 72], [80, null, 75]],
-  's:burpee-broad-jumps': [[null, null, 290], [null, null, 300], [null, null, 310], [null, null, 330]],
-  's:rowing': [[null, null, 270], [null, null, 275], [null, null, 285], [null, null, 295]],
-  's:farmers-carry': [[24, null, 60], [24, null, 64], [24, null, 68], [24, null, 72]],
-  's:sandbag-lunges': [[20, null, 90], [20, null, 95], [20, null, 100], [20, null, 105]],
-  's:wall-balls': [[6, 100, null], [6, 90, null], [6, 80, null], [6, 60, null]],
+  's:running': [305, 307, 309, 313, 315, 317, 320, 322, 324, 327, 330, 333, 335, 338, 340],
+  's:ski-erg': [265, 270, 275, 290],
+  's:sled-push': [65, 66, 68, 70],
+  's:sled-pull': [68, 70, 72, 75],
+  's:burpee-broad-jumps': [290, 300, 310, 330],
+  's:rowing': [270, 275, 285, 295],
+  's:farmers-carry': [60, 64, 68, 72],
+  's:sandbag-lunges': [90, 95, 100, 105],
+  's:wall-balls': [330, 345, 360, 390],
 };
 // The eight stations in race order (Running is handled separately below).
 const DEMO_STATION_REFS = STATION_REFS.slice(1);
 const DEMO_TIMES_OF_DAY = [18 * 60 + 30, 7 * 60 + 45, 12 * 60 + 15];
 
-const DEMO_GEN = 'demo-v3';
+const DEMO_GEN = 'demo-v4';
 
 function seedDemoSets(ownerId, now) {
   // 15 sessions at ~2.5-day gaps ≈ 5 weeks. Session s logs its run, then
@@ -336,9 +321,8 @@ function seedDemoSets(ownerId, now) {
     const refs = ['s:running', DEMO_STATION_REFS[(2 * s) % 8], DEMO_STATION_REFS[(2 * s + 1) % 8]];
     let k = 0;
     for (const ref of refs) {
-      const step = DEMO_LADDERS[ref][Math.min(occ[ref] || 0, DEMO_LADDERS[ref].length - 1)];
+      const seconds = DEMO_LADDERS[ref][Math.min(occ[ref] || 0, DEMO_LADDERS[ref].length - 1)];
       occ[ref] = (occ[ref] || 0) + 1;
-      const weight = step[0], reps = step[1], seconds = step[2];
       // Spread a session's sets a couple of minutes apart, alternating
       // morning, midday and evening slots. Today's session sits in the
       // last few minutes before req.now, so anything logged now lands on
@@ -350,19 +334,19 @@ function seedDemoSets(ownerId, now) {
         Math.floor(minutes / 60), minutes % 60);
       n += 1;
       k += 1;
-      rows.push({ key: DEMO_GEN + '-' + n, ref, weight, reps, seconds, logged });
+      rows.push({ key: DEMO_GEN + '-' + n, ref, seconds, logged });
     }
   }
   const values = [];
   const params = [];
   rows.forEach((r, i) => {
-    const b = i * 7;
+    const b = i * 5;
     values.push('($' + (b + 1) + ', $' + (b + 2) + ', $' + (b + 3) + ', $' + (b + 4) +
-      ', $' + (b + 5) + ', $' + (b + 6) + ', true, $' + (b + 7) + ')');
-    params.push(ownerId, r.ref, r.weight, r.reps, r.seconds, r.logged, r.key);
+      ', true, $' + (b + 5) + ')');
+    params.push(ownerId, r.ref, r.seconds, r.logged, r.key);
   });
   return pool.query(
-    'INSERT INTO sets (owner_id, exercise_ref, weight_kg, reps, seconds, logged_at, is_demo, demo_key) VALUES ' +
+    'INSERT INTO sets (owner_id, exercise_ref, seconds, logged_at, is_demo, demo_key) VALUES ' +
     values.join(', ') + ' ON CONFLICT (owner_id, demo_key) DO NOTHING', params).then(function (r) {
     // Rows the current seed no longer writes (an older generation) go, so a
     // changed seed shows its own shape. Rows of the CURRENT generation stay

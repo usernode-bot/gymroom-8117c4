@@ -40,8 +40,6 @@
     --danger: 185 28 28;
     --on-danger: 255 255 255;
     --focus: 194 65 12;      /* the keyboard focus ring */
-    --plate: 33 27 22; /* from the spec's screens */
-    --bar: 168 160 152; /* from the spec's screens */
   }
   .dark {
     --ground: 24 20 17;
@@ -55,8 +53,6 @@
     --danger: 248 113 113;
     --on-danger: 69 10 10;
     --focus: 251 146 60;
-    --plate: 232 225 216; /* pale plates read on a dark ground */
-    --bar: 120 112 104;
   }
   /* el.hidden = true hides an element even when a class gives it a display
      (flex, the components below). */
