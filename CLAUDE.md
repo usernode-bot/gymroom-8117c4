@@ -101,7 +101,9 @@ Running), log a set as a time, and see your best set each week for the
 station you choose alongside the full history of every set. A best set is
 the fastest time — Hyrox is a race — a tie keeping the earlier set. Sets
 logged without a time (older, weight- or reps-only ones) are hidden from
-every response. Weeks start on Monday.
+every response. Weeks start on Monday. An optional 60 second rest timer
+runs in the log form after a set is logged; it is client-only, not stored,
+and never part of the sets data.
 
 ## App-specific conventions
 

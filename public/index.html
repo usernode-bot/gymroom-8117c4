@@ -125,6 +125,13 @@
     </div>
     <button class="btn-primary" id="log-btn" type="button"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Log set</button>
     <p class="save-error" id="save-error" hidden></p>
+    <div class="rest" id="rest" hidden>
+      <div>
+        <div class="small" id="rest-status" aria-live="polite">Set logged.</div>
+        <div class="num" id="rest-clock" role="timer" hidden>1:00</div>
+      </div>
+      <button class="btn-secondary" id="rest-btn" type="button">Rest 1:00</button>
+    </div>
     </div></div>
 
     <div class="sec" id="progress-sec"><div class="section-label">Progress</div>
@@ -556,6 +563,60 @@
       return { error: 'Enter time as m:ss, like 2:10.' };
     }
 
+    // ── Rest timer ───────────────────────────────────────────────────────
+    // A fixed 60 second rest offered after a set is logged. Nothing is
+    // stored: the countdown lives in this page, and the time left is always
+    // worked out from the end timestamp, so a throttled timer in a
+    // background tab or a sleeping phone cannot make it drift.
+    var REST_MS = 60000;
+    var restEnd = null;
+    var restTimer = null;
+
+    function restReady() {
+      clearInterval(restTimer);
+      restTimer = null;
+      restEnd = null;
+      var status = $('rest-status');
+      status.textContent = 'Set logged.';
+      status.classList.remove('done');
+      hide($('rest-clock'));
+      $('rest-btn').textContent = 'Rest 1:00';
+      show($('rest'));
+    }
+
+    function restStart() {
+      clearInterval(restTimer);
+      restEnd = nowDate().getTime() + REST_MS;
+      var status = $('rest-status');
+      status.textContent = 'Resting';
+      status.classList.remove('done');
+      show($('rest-clock'));
+      $('rest-btn').textContent = 'Stop';
+      restTick();
+      restTimer = setInterval(restTick, 250);
+    }
+
+    function restTick() {
+      if (restEnd == null) return;
+      var left = restEnd - nowDate().getTime();
+      if (left <= 0) return restOver();
+      $('rest-clock').textContent = fmtTime(Math.ceil(left / 1000));
+    }
+
+    function restOver() {
+      clearInterval(restTimer);
+      restTimer = null;
+      restEnd = null;
+      hide($('rest-clock'));
+      var status = $('rest-status');
+      status.textContent = 'Rest over. Log your next set.';
+      status.classList.add('done');
+      $('rest-btn').textContent = 'Rest 1:00';
+      if (typeof navigator.vibrate === 'function') {
+        try { navigator.vibrate(200); } catch (e) {}
+      }
+    }
+
     function logSet() {
       if (saving) return;
       hide($('save-error'));
@@ -581,6 +642,7 @@
         sets.unshift(res.data.set);
         confirmDeleteId = null;
         renderAll();
+        restReady();
       }, function () {
         saving = false;
         $('log-btn').disabled = false;
@@ -611,6 +673,14 @@
     });
 
     $('log-btn').addEventListener('click', logSet);
+
+    $('rest-btn').addEventListener('click', function () {
+      if (restEnd != null) restReady(); else restStart();
+    });
+
+    // Coming back to the tab shows the real time left, or that the rest is
+    // over, at once.
+    document.addEventListener('visibilitychange', restTick);
 
     $('chips').addEventListener('click', function (ev) {
       var t = ev.target.closest('.chip');
