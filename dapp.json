@@ -24,6 +24,11 @@
       "expectText": "No sets yet"
     },
     {
+      "name": "Rest timer in log form",
+      "path": "/",
+      "expectSelector": "#log-form #rest-btn"
+    },
+    {
       "name": "Populated demo",
       "path": "/?demo=1",
       "expectText": "Best set each week",

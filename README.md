@@ -10,7 +10,8 @@ alongside your full history.
   a 1 km run comes before each station, so every run is logged under
   Running. Type the time as m:ss (or bare seconds) and tap Log set; the
   time stays filled in, and picking a station fills it from your last set
-  of that station.
+  of that station. After a set is logged, an optional Rest 1:00 button
+  runs a one minute countdown; the rest is not saved.
 - **See your progress.** Per station: your fastest set ever, and the
   fastest set of every week you trained it, each compared with the week
   before — "Faster by", "Slower by", "Same as before" or "First week".
