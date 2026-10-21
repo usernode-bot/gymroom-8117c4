@@ -19,6 +19,11 @@
       "expectSelector": "#exercise-select option[value=\"s:wall-balls\"]"
     },
     {
+      "name": "Time field opens a text keyboard",
+      "path": "/",
+      "expectSelector": "#time-input[inputmode=\"text\"]"
+    },
+    {
       "name": "Rest timer in log form",
       "path": "/",
       "expectSelector": "#log-form #rest-btn"
