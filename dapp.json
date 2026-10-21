@@ -19,6 +19,11 @@
       "expectSelector": "#exercise-select option[value=\"s:wall-balls\"]"
     },
     {
+      "name": "Rest timer in log form",
+      "path": "/",
+      "expectSelector": "#log-form #rest-btn"
+    },
+    {
       "name": "Empty history",
       "path": "/",
       "expectText": "No sets yet"

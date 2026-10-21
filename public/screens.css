@@ -102,6 +102,9 @@
 .field > svg {flex:none;pointer-events:none}
 .demo-note {padding:8px 16px;text-align:center;font-size:14px;line-height:20px;color:rgb(var(--fg));background:rgb(var(--raised))}
 .save-error {margin-top:8px;font-size:14px;line-height:20px;color:rgb(var(--danger))}
+.rest {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgb(var(--line))}
+.rest .btn-secondary {flex:none}
+.rest .done {color:rgb(var(--fg))}
 .del-q {flex:none}
 .del-yes,.del-no {min-height:44px;padding:0 12px;background:none;border:0;font-size:14px;font-weight:600;flex:none}
 .del-yes {color:rgb(var(--danger))}
