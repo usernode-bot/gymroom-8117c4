@@ -14,7 +14,9 @@
 }
 
 .gr {
-  width: 390px;
+  width: 100%;
+  max-width: 390px;
+  margin-inline: auto;
   min-height: 1320px;
   background: rgb(var(--ground));
   color: rgb(var(--fg));
